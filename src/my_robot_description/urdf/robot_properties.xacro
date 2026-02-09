@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<!--
+  ⭐ 모든 물리적 수치가 이 파일에 모여 있음
+    → 부품 교체 시 여기만 수정
+    → 다른 파일에서는 변수 이름으로 참조
+  
+  Xacro 변수 문법:
+    <xacro:property name="이름" value="값"/>
+    사용: ${이름} 또는 ${이름 * 2 + 1} (수식 가능!)
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+
+    
+  <!-- 프레임 치수 (m 단위!) -->
+  
+  <!-- X방향 350mm = 0.350m (전후 길이) -->
+  <xacro:property name="frame_length" value="0.350"/>
+  <!-- Y방향 300mm = 0.300m (좌우 폭) -->
+  <xacro:property name="frame_width" value="0.300"/>
+  <!-- Z방향 240mm = 0.240m (높이) -->
+  <xacro:property name="frame_height" value="0.240"/>
+  <!-- 지상고 57.5mm = 0.0575m -->
+  <xacro:property name="ground_clearance" value="0.0575"/>
+  
+  
+
+  <!-- 바퀴 치수 -->
+
+  <!-- 바퀴 반지름 32.5mm -->
+  <xacro:property name="wheel_radius" value="0.0325"/>
+  <!-- 바퀴 폭 20mm -->
+  <xacro:property name="wheel_width" value="0.020"/>
+  <!-- 좌우 바퀴 사이 거리 345mm -->
+  <xacro:property name="wheel_separation" value="0.345"/>
+  <!-- 바퀴 X 오프셋: 후방 100mm -->
+  <xacro:property name="wheel_x_offset" value="-0.100"/>
+  <!-- 바퀴 Z 오프셋: 하판 아래 25mm -->
+  <xacro:property name="wheel_z_offset" value="-0.025"/>
+  
+  
+
+  <!-- 질량 (kg) -->
+  
+  <xacro:property name="base_mass" value="4.79"/>
+  <xacro:property name="wheel_mass" value="0.080"/>
+  <xacro:property name="lidar_mass" value="0.170"/>
+  <xacro:property name="camera_mass" value="0.072"/>
+  <xacro:property name="imu_mass" value="0.010"/>
+  
+
+
+  <!-- 센서 위치 -->
+  
+  <xacro:property name="lidar_x" value="-0.130"/>
+  <xacro:property name="lidar_y" value="0.0"/>
+  <xacro:property name="lidar_z" value="0.424"/>
+  
+  <xacro:property name="camera_x" value="0.1875"/>
+  <xacro:property name="camera_y" value="0.0"/>
+  <xacro:property name="camera_z" value="0.2605"/>
+  
+  <xacro:property name="imu_x" value="0.100"/>
+  <xacro:property name="imu_y" value="0.0"/>
+  <xacro:property name="imu_z" value="0.085"/>
+  
+
+
+  <!-- CoM (무게중심) -->
+  
+  <xacro:property name="base_com_x" value="-0.017"/>
+  <xacro:property name="base_com_y" value="0.0"/>
+  <xacro:property name="base_com_z" value="0.106"/>
+  
+
+
+  <!-- 관성 모멘트 매크로 -->
+  
+  <!--
+    관성 모멘트를 매번 손으로 계산하는 대신 형상 + 질량을 넣으면 자동 계산하는 매크로
+    
+    Xacro 매크로 문법:
+        <xacro:macro name="이름" params="매개변수들">
+        ...내용...
+        </xacro:macro>
+    
+        호출: <xacro:이름 매개변수="값"/>
+  -->
+  
+  <!-- 박스 관성 매크로 -->
+  <xacro:macro name="box_inertia" params="m x y z">
+    <inertial>
+      <mass value="${m}"/>
+      <inertia ixx="${(1/12)*m*(y*y+z*z)}" ixy="0.0" ixz="0.0"
+               iyy="${(1/12)*m*(x*x+z*z)}" iyz="0.0"
+               izz="${(1/12)*m*(x*x+y*y)}"/>
+    </inertial>
+  </xacro:macro>
+  
+  <!-- 원기둥 관성 매크로 -->
+  <xacro:macro name="cylinder_inertia" params="m r h">
+    <inertial>
+      <mass value="${m}"/>
+      <inertia ixx="${(1/12)*m*(3*r*r+h*h)}" ixy="0.0" ixz="0.0"
+               iyy="${(1/12)*m*(3*r*r+h*h)}" iyz="0.0"
+               izz="${(1/2)*m*r*r}"/>
+    </inertial>
+  </xacro:macro>
+
+</robot>

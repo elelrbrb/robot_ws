@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<!--
+  ⭐ left_wheel과 right_wheel은 Y좌표 부호만 다름
+    → 매크로 1개로 양쪽 바퀴를 모두 생성
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+
+
+  <!-- 바퀴 매크로 정의 -->
+  
+  <xacro:macro name="wheel" params="prefix y_reflect">
+    <!--
+      params:
+        prefix: "left" 또는 "right" (이름 접두사)
+        y_reflect: +1 (왼쪽) 또는 -1 (오른쪽) (Y방향 반전)
+        
+      이 매크로를 호출하면 Joint + Link가 자동 생성
+    -->
+    
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <!--
+        ${prefix}_wheel_joint
+            → "left_wheel_joint" 또는 "right_wheel_joint"
+            → 문자열 조합이 가능
+      -->
+      <parent link="base_link"/>
+      <child link="${prefix}_wheel"/>
+      <origin xyz="${wheel_x_offset} ${y_reflect * wheel_separation / 2} ${wheel_z_offset}" rpy="0.0 0.0 0.0"/>
+      <!--
+        Y 위치 계산:
+          left:  +1 * 0.345/2 = +0.172.5
+          right: -1 * 0.345/2 = -0.172.5
+            → 하나의 수식으로 양쪽 모두 처리!
+      -->
+      <axis xyz="0 1 0"/>
+    </joint>
+    
+    <link name="${prefix}_wheel">
+      <visual>
+        <origin xyz="0.0 0.0 0.0" rpy="${pi/2} 0.0 0.0"/>
+        <!--
+          ${pi/2} = 1.5708...
+            Xacro는 pi를 내장 상수로 제공
+            → 1.5708 하드코딩 불필요
+        -->
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <material name="black">
+          <color rgba="0.1 0.1 0.1 1.0"/>
+        </material>
+      </visual>
+      
+      <collision>
+        <origin xyz="0.0 0.0 0.0" rpy="${pi/2} 0.0 0.0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+      
+      <xacro:cylinder_inertia m="${wheel_mass}" 
+                               r="${wheel_radius}" 
+                               h="${wheel_width}"/>
+      <!--
+        ⭐ 관성 모멘트 매크로 호출 → robot_properties.xacro에서 정의한 매크로
+      -->
+    </link>
+    
+
+
+    <!-- Gazebo 마찰 설정도 매크로 안에 -->
+    <gazebo reference="${prefix}_wheel">
+      <material>Gazebo/Black</material>
+      <mu1>1.0</mu1>
+      <mu2>1.0</mu2>
+      <kp>1000000.0</kp>
+      <kd>10.0</kd>
+    </gazebo>
+    
+  </xacro:macro>
+
+
+
+  <!-- 매크로 호출 — 바퀴 2개 생성! -->
+
+  <xacro:wheel prefix="left" y_reflect="1"/>
+  <!--
+    이 한 줄로 생성되는 것:
+    ✅ left_wheel_joint (continuous, Y=+0.155)
+    ✅ left_wheel (link with visual/collision/inertial)
+    ✅ Gazebo 마찰 설정
+  -->
+  
+  <xacro:wheel prefix="right" y_reflect="-1"/>
+  <!--
+    이 한 줄로 생성되는 것:
+    ✅ right_wheel_joint (continuous, Y=-0.155)
+    ✅ right_wheel (link with visual/collision/inertial)
+    ✅ Gazebo 마찰 설정
+  -->
+
+</robot>

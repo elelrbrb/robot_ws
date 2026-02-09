@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    
+
+  <!-- base_footprint (가상 Link) -->
+  
+  <link name="base_footprint"/>
+  
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0.0 0.0 ${ground_clearance}" rpy="0.0 0.0 0.0"/>
+    <!--
+      ${ground_clearance} = 0.0575 → 하드코딩 대신 변수 사용 → 바퀴 크기 바꾸면 이 값도 자동 연동 가능
+    -->
+  </joint>
+
+  
+
+  <!-- base_link -->
+  
+  <link name="base_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://my_robot_description/meshes/base_link.stl"
+              scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="silver">
+        <color rgba="0.75 0.75 0.75 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0.0 0.0 ${frame_height/2}" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="${frame_length} ${frame_width} ${frame_height}"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <origin xyz="${base_com_x} ${base_com_y} ${base_com_z}" 
+              rpy="0.0 0.0 0.0"/>
+      <mass value="${base_mass}"/>
+      <inertia ixx="${(1/12)*base_mass*(frame_width**2+frame_height**2)}"
+               ixy="0.0" ixz="0.0"
+               iyy="${(1/12)*base_mass*(frame_length**2+frame_height**2)}"
+               iyz="0.0"
+               izz="${(1/12)*base_mass*(frame_length**2+frame_width**2)}"/>
+      <!--
+        ** = 거듭제곱 연산자 (Xacro에서 사용 가능)
+            관성 모멘트를 공식으로 자동 계산 → 프레임 크기 바꾸면 관성도 자동 업데이트
+      -->
+    </inertial>
+  </link>
+
+</robot>

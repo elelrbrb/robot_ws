@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!--
+  ⭐ 메인 파일! 모든 모듈을 include로 조립!
+  
+  이 파일만 보면 로봇 전체 구조가 한눈에 → 세부 사항은 각 모듈 파일에
+  
+  빌드 명령:
+    xacro my_robot.urdf.xacro > my_robot.urdf → Xacro → 순수 URDF로 변환!
+-->
+
+
+<robot name="my_mobile_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- 변수 정의 (모든 수치) -->
+  <xacro:include filename="$(find my_robot_description)/urdf/robot_properties.xacro"/>
+  
+  <!-- 본체 (base_footprint + base_link) -->
+  <xacro:include filename="$(find my_robot_description)/urdf/robot_base.xacro"/>
+  
+  <!-- 바퀴 (left + right) -->
+  <xacro:include filename="$(find my_robot_description)/urdf/robot_wheels.xacro"/>
+  
+  <!-- 센서 (LiDAR + Camera + IMU) -->
+  <xacro:include filename="$(find my_robot_description)/urdf/robot_sensors.xacro"/>
+  
+  <!-- Gazebo 플러그인 (제어 + 센서 시뮬) -->
+  <xacro:include filename="$(find my_robot_description)/urdf/robot_gazebo.xacro"/>
+
+</robot>

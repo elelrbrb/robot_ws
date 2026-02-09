@@ -1,0 +1,975 @@
+<?xml version="1.0"?>
+<!--
+  좌표계 규약:
+    X+ = 전방 (Forward)
+    Y+ = 왼쪽 (Left) 
+    Z+ = 위쪽 (Up)
+  
+    원점: 프레임 하판 바닥 중앙 (지면에서 57.5mm 위)
+-->
+
+<robot name="my_mobile_robot">
+  <!-- ===== MATERIALS (색상 정의) ================= -->
+  <!--
+    URDF에서 색상은 <material> 태그로 정의 → rgba = Red, Green, Blue, Alpha 
+  -->
+  
+  <!-- 알루미늄 프로파일 색상 -->
+  <material name="silver">
+    <color rgba="0.75 0.75 0.75 1.0"/>
+  </material>
+  
+  <!-- 전자부품, 센서 색상 -->
+  <material name="dark_grey">
+    <color rgba="0.3 0.3 0.3 1.0"/>
+  </material>
+  
+  <!-- 바퀴, 타이어 색상 -->
+  <material name="black">
+    <color rgba="0.1 0.1 0.1 1.0"/>
+  </material>
+  
+  <!-- RealSense 카메라 색상 -->
+  <material name="blue">
+    <color rgba="0.0 0.2 0.6 1.0"/>
+  </material>
+
+
+
+  <!-- ===== LINK 1: base_footprint =============== -->
+  <!--
+    base_footprint: 가상의 Link (물리적 실체 없음!)
+      위치: 지면 위, 로봇 중심 바로 아래
+        → Nav2는 로봇의 "발자국"을 기준으로 경로를 계획 → 지면과 같은 높이에 있어야 장애물 회피가 정확
+        → base_link는 로봇 본체 중심이라 지면보다 위에 있음 → 그래서 지면 높이에 가상 Link를 하나 만들어 둠
+  -->
+  <link name="base_footprint">
+    <!--
+      가상 Link이므로 visual, collision, inertial 없음 → 빈 Link는 URDF에서 합법적 → RViz에서는 TF 프레임(축)만 표시
+    -->
+  </link>
+
+
+
+  <!-- ===== JOINT 1: base_joint ================== -->
+  <!--
+    base_footprint → base_link 연결
+      Type: fixed (고정) → 본체는 발자국에 대해 움직이지 않음
+    
+    Origin:
+      → base_footprint에서 base_link까지의 변환
+      → Z = +0.0575m (57.5mm = 지상고)
+      → 지면(footprint) → 프레임 하판 바닥(base_link)
+    
+    xyz 계산:
+      바퀴 반지름: 32.5mm
+      바퀴 중심 Z: 0mm (Fusion 기준)
+      지면 → 바퀴 중심: 32.5mm
+      바퀴 중심 → 하판 바닥: 25mm
+        합계: 32.5 + 25 = 57.5mm = 0.0575m
+        
+    ⚠️ 이 값은 바퀴+마운트 설계에 따라 달라짐 → Day 26에서 설계한 값을 사용
+  -->
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0.0 0.0 0.0575" rpy="0.0 0.0 0.0"/>
+    <!--
+      xyz: X=0(전후 중앙), Y=0(좌우 중앙), Z=+0.0575(위로)
+      rpy: Roll=0, Pitch=0, Yaw=0 (회전 없음)
+        Roll:  X축 회전 (좌우 기울기)
+        Pitch: Y축 회전 (앞뒤 기울기)
+        Yaw:   Z축 회전 (방향)
+    -->
+  </joint>
+
+
+
+  <!-- ===== LINK 2: base_link ==================== -->
+  <!--
+    base_link: 로봇의 본체! 프레임 + 모든 고정 부품을 포함
+    
+      이 Link 하나에 포함되는 Fusion 컴포넌트:
+        프레임 (하판, 상판, 기둥 4개)
+        판 4개 (Base, Lower, Upper, Top)
+        레일 4개
+        모터마운트 ×2, 캐스터마운트 ×2, 캐스터 ×2
+        모터 본체 ×2 (바퀴만 별도!)
+        BTS7960 ×2, 배터리, DC-DC, Jetson
+        카메라마운트, LiDAR폴, LiDAR마운트, Arm마운트
+        
+      왜 다 합치나?
+        → 전부 fixed (움직이지 않음)
+        → Link를 분리하면 fixed Joint만 늘어남
+        → 시뮬레이션 성능만 떨어짐
+  -->
+  <link name="base_link">
+    <!--
+      visual(눈에 보이는 형상) 태그: RViz나 Gazebo에서 눈에 보이는 모양
+        메시(STL)를 사용 → 시뮬레이션 물리에는 영향 없음
+    -->
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <!--
+        origin: Link 원점에서 메시까지의 오프셋
+        우리는 Fusion 원점 = base_link 원점으로 했으므로 오프셋 = 0, 0, 0 (그대로)
+      -->
+      <geometry>
+        <mesh filename="package://my_robot_description/meshes/base_link.stl" 
+              scale="0.001 0.001 0.001"/>
+        <!--  
+          scale: STL이 mm 단위 → URDF는 m 단위
+          0.001 = mm → m 변환!
+          1mm × 0.001 = 0.001m = 1mm 
+        -->
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    
+
+    <!--
+      collision(충돌 판정용 형상) 태그: Gazebo가 물리 충돌을 계산할 때 사용하는 형상
+        visual STL: 삼각형 수천~수만 개 → 충돌 계산에 쓰면 느림
+        collision: 간단한 기하(박스, 원기둥)로 근사 → 빠름
+        
+      박스 크기:
+        X: 0.350m (350mm, 프레임 X방향)
+        Y: 0.300m (300mm, 프레임 Y방향)
+        Z: 0.240m (240mm, 프레임 높이)
+    -->
+    <collision>
+      <origin xyz="0.0 0.0 0.12" rpy="0.0 0.0 0.0"/>
+      <!--
+        Z = 0.12m (120mm)
+          → 박스 중심이 프레임 높이의 절반 → 하판 Z=0 ~ 상판 Z=240 → 중심 Z=120mm
+      -->
+      <geometry>
+        <box size="0.350 0.300 0.240"/>
+        <!--
+          size: X길이, Y길이, Z길이 (미터!)
+          중심점에서 ±절반씩 확장됨
+        -->
+      </geometry>
+    </collision>
+    
+
+    <!--
+      inertial(질량 + 관성) 태그: Gazebo 물리 시뮬레이션의 핵심
+        이게 없으면 로봇이 시뮬레이션에서 사라지거나 비정상적으로 움직임
+        
+      구성:
+        mass: 질량 (kg)
+        origin: 무게중심(CoM) 위치
+        inertia: 관성 모멘트 텐서 (6개 값)
+        
+      관성 모멘트 계산 — 박스 근사: 박스 질량 m, 크기 x, y, z에 대해:
+        Ixx = (1/12) × m × (y² + z²)
+        Iyy = (1/12) × m × (x² + z²)
+        Izz = (1/12) × m × (x² + y²)
+        
+      Phase 1 base_link 질량:
+        전체 5.2kg - 바퀴 0.16kg - 센서(별도Link) 0.252kg ≈ 4.79 kg
+        박스 크기: 0.35 × 0.30 × 0.24 (m)
+    
+        Ixx = (1/12) × 4.79 × (0.30² + 0.24²)
+            = (1/12) × 4.79 × (0.09 + 0.0576)
+            = 0.3993 × 0.1476
+            = 0.0589 kg·m²
+            
+        Iyy = (1/12) × 4.79 × (0.35² + 0.24²)
+            = 0.3993 × (0.1225 + 0.0576)
+            = 0.3993 × 0.1801
+            = 0.0719 kg·m²
+            
+        Izz = (1/12) × 4.79 × (0.35² + 0.30²)
+            = 0.3993 × (0.1225 + 0.09)
+            = 0.3993 × 0.2125
+            = 0.0848 kg·m²
+    -->
+    <inertial>
+      <origin xyz="-0.017 0.0 0.106" rpy="0.0 0.0 0.0"/>
+      <!--
+        CoM 위치: X=-17mm, Y=0, Z=106mm
+      -->
+      <mass value="4.79"/>
+      <inertia ixx="0.0589" ixy="0.0" ixz="0.0"
+               iyy="0.0719" iyz="0.0"
+               izz="0.0848"/>
+      <!--
+        비대각 성분 (ixy, ixz, iyz): 좌우 대칭이므로 대부분 0에 가까움 (간략 모델에서는 0으로 설정해도 무방)
+      -->
+    </inertial>
+  </link>
+
+
+
+  <!-- ===== LINK 3 + JOINT 2: left_wheel ========= -->
+  <!--
+    왼쪽 바퀴:
+      형상: 원기둥 (직경 65mm, 폭 20mm)
+      위치: X=-100mm, Y=+155mm, Z=-25mm (Fusion 기준)
+      회전축: Y축 (좌우 방향)
+      
+    Joint type: continuous
+      → 무한 회전 가능 (제한 없음)
+      
+    축(axis):
+      바퀴가 Y축을 중심으로 회전
+      → axis = "0 1 0" (Y방향)
+  -->
+  <joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="left_wheel"/>
+    <origin xyz="-0.100 0.155 -0.025" rpy="0.0 0.0 0.0"/>
+    <!--
+      base_link 원점에서 바퀴 중심까지:
+        X: -0.100 (100mm 후방 = 모터 위치)
+        Y: +0.155 (155mm 왼쪽 = 프레임 외부)
+        Z: -0.025 (25mm 아래 = 하판 아래)
+    -->
+    <axis xyz="0 1 0"/>
+  </joint>
+  
+  <link name="left_wheel">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="1.5708 0.0 0.0"/>
+      <!--
+        rpy: Roll = π/2 (90°)
+      
+        URDF의 cylinder 기본 방향: Z축
+        바퀴 회전축: Y축 → X축으로 90° 회전하면 Z→Y로 변환
+        
+        1.5708 = π/2 ≈ 1.5708 rad
+      -->
+      <geometry>
+        <cylinder radius="0.0325" length="0.020"/>
+        <!--
+          radius: 32.5mm = 0.0325m (바퀴 반지름)
+          length: 20mm = 0.020m (바퀴 폭)
+        -->
+      </geometry>
+      <material name="black"/>
+    </visual>
+    
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="1.5708 0.0 0.0"/>
+      <geometry>
+        <cylinder radius="0.0325" length="0.020"/>
+        <!--
+          바퀴는 충돌이 중요 (지면과 접촉) → visual과 동일한 형상 사용
+        -->
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.080"/>
+      <!--
+        바퀴 질량: 80g = 0.080kg
+        
+        원기둥 관성 모멘트:
+          Ixx = Iyy = (1/12) × m × (3r² + h²)
+          Izz = (1/2) × m × r²
+        
+          r = 0.0325m, h = 0.020m, m = 0.080kg
+        
+          Ixx = (1/12) × 0.08 × (3×0.0325² + 0.02²)
+              = 0.00667 × (0.00317 + 0.0004)
+              = 0.00667 × 0.00357
+              = 0.0000238 kg·m²
+              
+          Izz = (1/2) × 0.08 × 0.0325²
+              = 0.04 × 0.001056
+              = 0.0000423 kg·m²
+        -->
+      <inertia ixx="0.0000238" ixy="0.0" ixz="0.0"
+               iyy="0.0000238" iyz="0.0"
+               izz="0.0000423"/>
+    </inertial>
+  </link>
+
+
+
+  <!-- ===== LINK 4 + JOINT 3: right_wheel ======== -->
+  <joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="right_wheel"/>
+    <origin xyz="-0.100 -0.155 -0.025" rpy="0.0 0.0 0.0"/>
+    <!--
+      Y: -0.155 (오른쪽) 나머지는 left_wheel과 동일
+    -->
+    <axis xyz="0 1 0"/>
+  </joint>
+  
+  <link name="right_wheel">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="1.5708 0.0 0.0"/>
+      <geometry>
+        <cylinder radius="0.0325" length="0.020"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="1.5708 0.0 0.0"/>
+      <geometry>
+        <cylinder radius="0.0325" length="0.020"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.080"/>
+      <inertia ixx="0.0000238" ixy="0.0" ixz="0.0"
+               iyy="0.0000238" iyz="0.0"
+               izz="0.0000423"/>
+    </inertial>
+  </link>
+
+
+
+  <!-- ===== LINK 5 + JOINT 4: lidar_link ========= -->
+  <!--
+    RPLiDAR A1:
+      Fusion 위치: X=-130, Y=0, Z=403 (바닥면)
+      형상: 원기둥 Ø70×41mm
+      
+    왜 별도 Link?
+      → rplidar_ros 노드가 sensor_msgs/LaserScan을 lidar_link 좌표계 기준으로 발행
+      → SLAM, Nav2가 이 TF를 사용해서 LiDAR 데이터를 base_link로 변환
+        
+    LiDAR 좌표계 규약:
+      X+ = 전방 (0°)
+      Y+ = 왼쪽 (90°)
+      레이저가 XY 평면에서 스캔
+  -->
+  <joint name="lidar_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="lidar_link"/>
+    <origin xyz="-0.130 0.0 0.424" rpy="0.0 0.0 0.0"/>
+    <!--
+      X: -0.130 (후방 130mm)
+      Y: 0.0 (중앙)
+      Z: 0.424 (403mm + 41mm/2 = 423.5mm ≈ 424mm)
+        → LiDAR 센서의 레이저 발사 높이 = 중심
+      
+      ⚠️ Z를 LiDAR의 바닥이 아닌 중심으로 잡는 이유: LaserScan 데이터는 레이저 높이에서 발생 → 센서 중심 = 레이저 높이
+    -->
+  </joint>
+  
+  <link name="lidar_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <cylinder radius="0.035" length="0.041"/>
+        <!--
+          radius: 35mm, length: 41mm
+          시뮬에서는 간단한 원기둥으로 표현
+            실제 메시를 쓰고 싶으면:
+            <mesh filename="package://my_robot_description/meshes/lidar.stl"
+                  scale="0.001 0.001 0.001"/>
+        -->
+      </geometry>
+      <material name="dark_grey"/>
+    </visual>
+    
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <cylinder radius="0.035" length="0.041"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.170"/>
+      <!--
+        원기둥 관성:
+          r=0.035, h=0.041, m=0.170
+        
+          Ixx = (1/12)×0.17×(3×0.035²+0.041²) = 0.0000527
+          Izz = (1/2)×0.17×0.035² = 0.000104
+      -->
+      <inertia ixx="0.0000527" ixy="0.0" ixz="0.0"
+               iyy="0.0000527" iyz="0.0"
+               izz="0.000104"/>
+    </inertial>
+  </link>
+
+  
+
+  <!-- ===== LINK 6 + JOINT 5: camera_link ======== -->
+  <!--
+    Intel RealSense D435:
+      Fusion 위치: X=187.5, Y=0, Z=248 (바닥면)
+      형상: 25×90×25mm
+      
+    카메라 좌표계 규약 (ROS):
+      Z+ = 전방 (카메라가 바라보는 방향)
+      X+ = 오른쪽
+      Y+ = 아래쪽
+      
+      ⚠️ 로봇 좌표계와 다름
+        → realsense2_camera 노드가 자동으로 변환해줌
+        → 여기서는 카메라 마운트 위치만 정확히 지정
+      
+    우리 카메라는 X+ 방향(전방)을 바라봄 → 카메라 optical frame은 별도로 생성됨 (드라이버가 자동)
+  -->
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <origin xyz="0.1875 0.0 0.2605" rpy="0.0 0.0 0.0"/>
+    <!--
+      X: 0.1875 (187.5mm 전방)
+      Y: 0.0 (중앙)
+      Z: 0.2605 (248mm + 25mm/2 = 260.5mm = 카메라 중심)
+    -->
+  </joint>
+  
+  <link name="camera_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.025 0.090 0.025"/>
+        <!--
+          X=25mm(깊이), Y=90mm(폭), Z=25mm(높이)
+        -->
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.025 0.090 0.025"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.072"/>
+      <!--
+        박스 관성:
+          m=0.072, x=0.025, y=0.090, z=0.025
+
+          Ixx = (1/12)×0.072×(0.09²+0.025²) = 0.0000524
+          Iyy = (1/12)×0.072×(0.025²+0.025²) = 0.0000075
+          Izz = (1/12)×0.072×(0.025²+0.09²) = 0.0000524
+      -->
+      <inertia ixx="0.0000524" ixy="0.0" ixz="0.0"
+               iyy="0.0000075" iyz="0.0"
+               izz="0.0000524"/>
+    </inertial>
+  </link>
+
+
+
+  <!-- ===== LINK 7 + JOINT 6: imu_link =========== -->  
+  <!--
+    BNO055 IMU:
+      Fusion 위치: X=100, Y=0, Z=83 (바닥면)
+      형상: 27×20×4mm (매우 작음)
+      
+    IMU 좌표계:
+      관성 측정 → base_link와 정렬되어야 함
+      X+ = 전방, Y+ = 왼쪽, Z+ = 위
+        → 마운트할 때 PCB의 축 방향 표시를 확인
+      
+    robot_localization (EKF) 패키지가 imu_link의 TF를 사용해서 데이터를 변환함
+  -->
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0.100 0.0 0.085" rpy="0.0 0.0 0.0"/>
+    <!--
+      X: 0.100 (전방 100mm)
+      Y: 0.0 (중앙)
+      Z: 0.085 (83mm + 4mm/2 = 85mm = IMU 중심)
+    -->
+  </joint>
+  
+  <link name="imu_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.027 0.020 0.004"/>
+      </geometry>
+      <material name="dark_grey"/>
+    </visual>
+    
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.027 0.020 0.004"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.010"/>
+      <inertia ixx="0.0000001" ixy="0.0" ixz="0.0"
+               iyy="0.0000001" iyz="0.0"
+               izz="0.0000001"/>
+      <!--
+        IMU는 10g으로 매우 가벼움
+          관성 모멘트가 극도로 작아서 최소값(1e-7)으로 설정 → 0으로 하면 Gazebo가 에러 발생
+      -->
+    </inertial>
+  </link>
+
+
+
+
+
+
+  <!-- ===== GAZEBO: 바퀴 마찰 ==================== -->  
+  <!--
+    마찰이 너무 작으면:
+      → 바퀴가 헛돌 (미끄러짐)
+      → 오도메트리가 틀림
+      → 직선으로 안 감
+      
+    마찰이 너무 크면:
+      → 회전할 때 바퀴가 안 미끄러짐
+      → 차동 구동의 스키드 턴이 안 됨
+      → 회전 반경이 비현실적
+      
+    적절한 값: mu1=1.0, mu2=1.0 → 고무 바퀴 + 실내 바닥 기준
+  -->
+  <gazebo reference="left_wheel">
+    <material>Gazebo/Black</material>
+    <!--
+      Gazebo 전용 재질 (색상) - URDF의 <material>과 별개 (Gazebo는 자체 재질 시스템 사용)
+    -->
+    <mu1>1.0</mu1>
+    <!--
+      mu1: 쿨롱 마찰 계수 (Slip direction 1)
+        → 바퀴 굴러가는 방향의 마찰 → 1.0 = 고무-콘크리트 수준
+    -->
+    <mu2>1.0</mu2>
+    <!--
+      mu2: 쿨롱 마찰 계수 (Slip direction 2)
+        → 바퀴 옆방향 마찰 (미끄러짐 방지) → 1.0이면 옆으로 안 밀림
+    -->
+    <kp>1000000.0</kp>
+    <!--
+      kp: 접촉 강성 (Contact stiffness)
+        → 바퀴가 지면에 닿았을 때 "얼마나 단단한가"
+          → 너무 작으면 바퀴가 지면을 뚫고 들어감
+          → 너무 크면 시뮬 불안정 (진동)
+        → 1e6이 일반적인 안전 값
+    -->
+    <kd>10.0</kd>
+    <!--
+      kd: 접촉 감쇠 (Contact damping)
+        → 접촉 시 에너지 흡수량 → 바운스(탄성 충돌) 방지
+        → 10.0이 안정적인 시작 값
+    -->
+  </gazebo>
+  
+  <gazebo reference="right_wheel">
+    <material>Gazebo/Black</material>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <kp>1000000.0</kp>
+    <kd>10.0</kd>
+  </gazebo>
+
+
+
+  <!-- ===== GAZEBO: base_link 설정 =============== -->
+  <!--
+    base_link에는 캐스터가 포함되어 있음
+    캐스터는 실제로는 자유 회전하지만 URDF에서는 base_link에 합쳐짐
+      → Gazebo에서 캐스터 효과를 재현하려면 base_link 하단의 마찰을 낮춰야 함
+      
+    하지만 우리는 캐스터를 별도 Link가 아닌 base_link에 포함시켰으므로, 실제로는 diff_drive 플러그인이 캐스터 효과를 자동 처리 → 특별한 설정 불필요
+  -->
+  <gazebo reference="base_link">
+    <material>Gazebo/Grey</material>
+    <mu1>0.2</mu1>
+    <mu2>0.2</mu2>
+    <!--
+      base_link 전체의 마찰은 낮게
+        → 혹시 바닥에 닿더라도 미끄러지게
+        → 바퀴만 높은 마찰, 본체는 낮은 마찰
+    -->
+  </gazebo>
+
+
+
+
+
+  <!-- ===== GAZEBO: Diff Drive 플러그인 =========== -->
+  <!--
+    역할:
+      geometry_msgs/Twist (cmd_vel)
+        → 왼쪽/오른쪽 바퀴 회전 속도로 변환
+        → 오도메트리(nav_msgs/Odometry) 발행
+          → odom → base_footprint TF 브로드캐스트
+      
+    없으면?
+      → cmd_vel을 보내도 바퀴가 안 돌아감
+      → 오도메트리 없음 → SLAM, Nav2 불가
+  -->
+  <gazebo>
+    <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <!--
+        plugin name: ROS 2에서 이 플러그인을 식별하는 이름
+        filename: Gazebo가 로드할 공유 라이브러리 파일
+        
+        ⚠️ 이것은 Gazebo Classic (Gazebo 11) 용
+           Gazebo Fortress/Garden에서는 다른 플러그인 사용 → Day 32에서 정확한 버전 다룸
+      -->
+      
+      <!-- === 바퀴 Joint 이름 === -->
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <!--
+        어떤 Joint를 돌릴지 지정 (URDF에서 정의한 Joint 이름과 정확히 일치)
+      -->
+      
+      <!-- === 바퀴 기하 === -->
+      <wheel_separation>0.310</wheel_separation>
+      <!--
+        좌우 바퀴 사이 거리 (m)
+          Y=+0.155 ~ Y=-0.155 = 0.310m
+        
+        이 값이 틀리면?
+          → 회전 반경이 틀림
+          → 제자리 회전 시 오도메트리 오차 큼
+          → ⭐ 가장 중요한 파라미터!
+      -->
+      
+      <wheel_diameter>0.065</wheel_diameter>
+      <!--
+        바퀴 직경 (m) = 65mm
+        
+        이 값이 틀리면?
+          → 직선 주행 거리가 틀림
+          → 10m 가라고 했는데 8m만 감
+      -->
+      
+      <!-- === 제어 파라미터 === -->
+      <max_wheel_torque>5.0</max_wheel_torque>
+      <!--
+        바퀴에 걸 수 있는 최대 토크 (N·m)
+          JGB37-520 스톨 토크: ~0.5-0.8 N·m - 여유 있게 5.0으로 설정 (시뮬에서는 넉넉하게)
+      -->
+      
+      <max_wheel_acceleration>2.0</max_wheel_acceleration>
+      <!--
+        바퀴 각가속도 제한 (rad/s²)
+          급가속 방지 → 현실적인 움직임
+      -->
+      
+      <!-- === ROS 2 토픽 === -->
+      <command_topic>cmd_vel</command_topic>
+      <!--
+        입력: geometry_msgs/Twist
+          teleop이나 Nav2에서 이 토픽으로 속도 명령 발행
+      -->
+      
+      <odometry_topic>odom</odometry_topic>
+      <!--
+        출력: nav_msgs/Odometry
+          로봇의 현재 위치/속도 추정값
+      -->
+      
+      <odometry_frame>odom</odometry_frame>
+      <!--
+        오도메트리 TF의 부모 프레임 이름
+          표준: "odom"
+      -->
+      
+      <robot_base_frame>base_footprint</robot_base_frame>
+      <!--
+        오도메트리 TF의 자식 프레임 이름
+          표준: "base_footprint" (또는 "base_link")
+        
+        결과 TF: odom → base_footprint
+          → 로봇이 얼마나 이동했는지 추적!
+      -->
+      
+      <!-- === TF 발행 === -->
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <!--
+        true: odom → base_footprint TF를 이 플러그인이 발행
+        
+        ⚠️ 나중에 robot_localization (EKF)을 사용하면 여기서 TF 발행을 끄고 EKF가 발행하게 함!
+          → publish_odom_tf = false
+      -->
+      
+      <publish_wheel_tf>false</publish_wheel_tf>
+      <!--
+        false: 바퀴 TF는 robot_state_publisher가 발행
+          → 중복 방지!
+      -->
+      
+      <!-- === 갱신 주기 === -->
+      <update_rate>50.0</update_rate>
+      <!--
+        50 Hz = 20ms마다 오도메트리 갱신
+          실제 로봇의 엔코더 갱신 주기와 맞춤
+      -->
+      
+    </plugin>
+  </gazebo>
+
+
+
+
+
+  <!-- ===== GAZEBO: LiDAR 센서 =================== -->
+  <!--
+    RPLiDAR A1 시뮬레이션: 360° 2D 레이저 스캔
+      sensor_msgs/LaserScan 발행
+      
+    시뮬에서 LiDAR가 있으면:
+      → SLAM이 동작! (가상 맵 생성)
+      → Nav2 장애물 감지!
+      → 실제 LiDAR 없이 알고리즘 테스트 가능
+  -->
+  <gazebo reference="lidar_link">
+    <sensor name="lidar" type="ray">
+      <!--
+        type="ray": 레이저 스캔 센서
+          Gazebo가 가상 레이저 빔을 쏘고 장애물까지의 거리를 계산
+      -->
+      
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+      <!--
+        visualize=true: Gazebo에서 레이저 빔이 눈에 보임
+      -->
+      
+      <update_rate>5.5</update_rate>
+      <!--
+        RPLiDAR A1 스캔 주기: ~5.5 Hz
+          1초에 5.5번 완전 회전 - 실제 스펙과 일치시킴
+      -->
+      
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <!--
+              360개 레이저 빔 = 1° 간격
+                RPLiDAR A1 실제: ~8000 samples/s
+                5.5Hz에서 ~1450 samples/회전
+                시뮬에서는 360으로 간략화 (성능)
+            -->
+            <resolution>1.0</resolution>
+            <!--
+              resolution: sample 간 각도 배율
+                1.0 = 360 samples가 360°에 균등 분포
+            -->
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+            <!--
+              -π ~ +π = 360° 풀스캔
+              0° = X+ 방향 (전방)
+              +90° = Y+ 방향 (왼쪽)
+            -->
+          </horizontal>
+        </scan>
+        
+        <range>
+          <min>0.15</min>
+          <!--
+            최소 측정 거리: 150mm
+              이보다 가까운 장애물은 감지 불가
+              RPLiDAR A1 스펙: 0.15m
+          -->
+          <max>12.0</max>
+          <!--
+            최대 측정 거리: 12m
+            RPLiDAR A1 스펙: 12m
+          -->
+          <resolution>0.01</resolution>
+          <!--
+            거리 분해능: 1cm
+            "10cm와 11cm를 구분할 수 있는가?"
+          -->
+        </range>
+        
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.005</stddev>
+          <!--
+            가우시안 노이즈 추가!
+            평균 0, 표준편차 5mm
+            
+            왜 노이즈를 일부러 넣나?
+              → 실제 센서는 항상 노이즈가 있음
+              → 노이즈 없는 완벽한 데이터로 알고리즘을 만들면 실제 환경에서 실패!
+              → "Sim-to-Real Gap" 줄이기 위해 필수
+          -->
+        </noise>
+      </ray>
+      
+      <plugin name="lidar_controller" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <remapping>~/out:=scan</remapping>
+          <!--
+            출력 토픽: /scan
+              SLAM, Nav2가 이 토픽을 구독!
+          -->
+        </ros>
+        <output_type>sensor_msgs/LaserScan</output_type>
+        <frame_name>lidar_link</frame_name>
+        <!--
+          데이터의 좌표계 = lidar_link
+            → TF를 통해 base_link, odom으로 변환됨
+        -->
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+
+
+
+  <!-- ===== GAZEBO: 카메라 센서 =================== -->
+  <!--
+    Intel RealSense D435 시뮬레이션: RGB 이미지 + Depth 이미지
+      
+    ⚠️ 실제 RealSense는 realsense_gazebo_plugin 사용 권장
+       여기서는 기본 depth camera로 간략화
+  -->
+  <gazebo reference="camera_link">
+    <sensor name="depth_camera" type="depth">
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <!--
+        카메라 시각화는 성능 저하가 심해서 false
+      -->
+      
+      <update_rate>30.0</update_rate>
+      <!--
+        30 FPS: RealSense D435 기본 프레임레이트
+      -->
+      
+      <camera>
+        <horizontal_fov>1.20428</horizontal_fov>
+        <!--
+          수평 화각: 69° = 1.204 rad
+            RealSense D435 depth 스펙: 87° (RGB는 69°)
+            depth 기준으로 설정
+        -->
+        
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <!--
+            해상도: VGA (640×480)
+              시뮬에서는 성능을 위해 낮은 해상도 사용
+              실제: 1280×720까지 가능
+          -->
+          <format>B8G8R8</format>
+          <!--
+            BGR 8bit 컬러 (OpenCV 기본 포맷)
+          -->
+        </image>
+        
+        <clip>
+          <near>0.1</near>
+          <far>10.0</far>
+          <!--
+            깊이 범위: 0.1m ~ 10m
+              RealSense D435 스펙과 근사
+          -->
+        </clip>
+      </camera>
+      
+      <plugin name="depth_camera_controller" filename="libgazebo_ros_camera.so">
+        <ros>
+          <remapping>~/image_raw:=camera/color/image_raw</remapping>
+          <remapping>~/depth/image_raw:=camera/depth/image_rect_raw</remapping>
+          <remapping>~/camera_info:=camera/color/camera_info</remapping>
+          <remapping>~/depth/camera_info:=camera/depth/camera_info</remapping>
+          <!--
+            토픽 이름을 RealSense 드라이버와 동일하게 → 코드를 수정 없이 시뮬↔실제 전환 가능!
+          -->
+        </ros>
+        <frame_name>camera_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  
+
+
+
+  <!-- ===== GAZEBO: IMU 센서 ===================== -->
+  <gazebo reference="imu_link">
+    <sensor name="imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>100.0</update_rate>
+      <!--
+        100 Hz: BNO055 기본 출력 주기
+          robot_localization EKF가 이 데이터를 소비
+      -->
+      
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0002</stddev>
+          </noise></x>
+          <y><noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0002</stddev>
+          </noise></y>
+          <z><noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0002</stddev>
+          </noise></z>
+          <!--
+            각속도 노이즈: 0.0002 rad/s
+              BNO055는 온칩 퓨전으로 노이즈가 적음
+          -->
+        </angular_velocity>
+        
+        <linear_acceleration>
+          <x><noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.017</stddev>
+          </noise></x>
+          <y><noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.017</stddev>
+          </noise></y>
+          <z><noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.017</stddev>
+          </noise></z>
+          <!--
+            가속도 노이즈: 0.017 m/s²
+              중력(9.8) 대비 ~0.17% 수준
+          -->
+        </linear_acceleration>
+      </imu>
+      
+      <plugin name="imu_controller" filename="libgazebo_ros_imu_sensor.so">
+        <ros>
+          <remapping>~/out:=imu/data</remapping>
+          <!--
+            출력: /imu/data (sensor_msgs/Imu)
+          -->
+        </ros>
+        <frame_name>imu_link</frame_name>
+        <initial_orientation_as_reference>false</initial_orientation_as_reference>
+        <!--
+          false: 월드 좌표계 기준으로 방향 출력 → EKF가 절대 방향을 사용할 수 있음
+        -->
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+  
+
+</robot>

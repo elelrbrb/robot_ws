@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+
+
+  <!-- base_link 물리 속성 -->
+  
+  <gazebo reference="base_link">
+    <material>Gazebo/Grey</material>
+    <mu1>0.2</mu1>
+    <mu2>0.2</mu2>
+  </gazebo>
+
+
+
+  <!-- Differential Drive Controller -->
+  
+  <gazebo>
+    <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <wheel_separation>${wheel_separation}</wheel_separation>
+      <wheel_diameter>${wheel_radius * 2}</wheel_diameter>
+      <!--
+        ${wheel_radius * 2} = 0.0325 * 2 = 0.065
+        → 변수에 수식 적용!
+        → 직경 = 반지름 × 2
+      -->
+      <max_wheel_torque>5.0</max_wheel_torque>
+      <max_wheel_acceleration>2.0</max_wheel_acceleration>
+      <command_topic>cmd_vel</command_topic>
+      <odometry_topic>odom</odometry_topic>
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_footprint</robot_base_frame>
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <publish_wheel_tf>false</publish_wheel_tf>
+      <update_rate>50.0</update_rate>
+    </plugin>
+  </gazebo>
+
+
+
+  <!-- LiDAR Sensor -->
+  
+  <gazebo reference="lidar_link">
+    <sensor name="lidar" type="ray">
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+      <update_rate>5.5</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1.0</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.15</min>
+          <max>12.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.005</stddev>
+        </noise>
+      </ray>
+      <plugin name="lidar_controller" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <remapping>~/out:=scan</remapping>
+        </ros>
+        <output_type>sensor_msgs/LaserScan</output_type>
+        <frame_name>lidar_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+
+  <!-- Depth Camera Sensor -->
+  
+  <gazebo reference="camera_link">
+    <sensor name="depth_camera" type="depth">
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <update_rate>30.0</update_rate>
+      <camera>
+        <horizontal_fov>1.20428</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>B8G8R8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>10.0</far>
+        </clip>
+      </camera>
+      <plugin name="depth_camera_controller" filename="libgazebo_ros_camera.so">
+        <ros>
+          <remapping>~/image_raw:=camera/color/image_raw</remapping>
+          <remapping>~/depth/image_raw:=camera/depth/image_rect_raw</remapping>
+          <remapping>~/camera_info:=camera/color/camera_info</remapping>
+          <remapping>~/depth/camera_info:=camera/depth/camera_info</remapping>
+        </ros>
+        <frame_name>camera_optical_frame</frame_name>
+        <!--
+          ⚠️ camera_link가 아닌 camera_optical_frame → 이미지 데이터는 optical frame 기준으로 발행
+        -->
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+
+  <!-- IMU Sensor -->
+  
+  <gazebo reference="imu_link">
+    <sensor name="imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>100.0</update_rate>
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></z>
+        </linear_acceleration>
+      </imu>
+      <plugin name="imu_controller" filename="libgazebo_ros_imu_sensor.so">
+        <ros>
+          <remapping>~/out:=imu/data</remapping>
+        </ros>
+        <frame_name>imu_link</frame_name>
+        <initial_orientation_as_reference>false</initial_orientation_as_reference>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+</robot>
