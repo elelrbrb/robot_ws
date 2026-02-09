@@ -75,6 +75,9 @@ setup(
         'console_scripts': [
             # 실행 가능한 Python 노드가 있으면 여기에 등록
                 # 예: 'my_node = my_robot_description.my_node:main',
+            'static_tf_broadcaster_example = my_robot_description.static_tf_broadcaster_example:main',    
+            'tf_listener_example = my_robot_description.tf_listener_example:main',    
+            'odom_publisher_example = my_robot_description.odom_publisher_example:main',    
         ],
     },
 )
