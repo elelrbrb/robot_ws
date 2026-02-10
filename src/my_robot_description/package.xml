@@ -36,44 +36,41 @@
   
   <!-- ROS 2 Python 클라이언트 라이브러리 → Launch 파일에서 ROS 2 기능 사용 -->
   <exec_depend>rclpy</exec_depend>
-  
   <exec_depend>robot_state_publisher</exec_depend>
   <!--
     URDF를 읽고 TF를 브로드캐스트하는 노드 → ⭐ 로봇 시각화의 핵심
       → /robot_description 파라미터로 URDF 전달
       → joint_states를 받아서 각 Link의 TF 계산 + 발행
   -->
-  
   <exec_depend>joint_state_publisher</exec_depend>
   <!--
     fixed가 아닌 Joint의 상태를 발행하는 노드
       → 바퀴의 회전 각도 등
       → Gazebo 연동 시에는 Gazebo가 대신 발행하므로 불필요 → RViz 단독 테스트 시에만 사용
   -->
-  
   <exec_depend>joint_state_publisher_gui</exec_depend>
   <!--
     joint_state_publisher의 GUI 버전
       → 슬라이더로 각 Joint를 수동 조작!
       → 바퀴 회전, 팔 관절 움직임을 시각적으로 테스트
   -->
-  
   <exec_depend>xacro</exec_depend>
   <!--
     Xacro → URDF 변환 도구
       → Launch 파일에서 런타임에 변환
       → .urdf.xacro 파일을 순수 .urdf로 펼침
   -->
-  
   <exec_depend>rviz2</exec_depend>
   <!--
     ROS 2 시각화 도구 → TF, 로봇 모델, 센서 데이터 등을 3D로 표시
   -->
-  
   <exec_depend>urdf</exec_depend>
   <!--
     URDF 파서 라이브러리 → robot_state_publisher가 URDF를 파싱할 때 사용
   -->
+
+
+  <exec_depend>gazebo_ros</exec_depend> 
 
 
 
@@ -88,5 +85,6 @@
 
   <export>
     <build_type>ament_python</build_type>
+    <gazebo_ros gazebo_model_path="${prefix}/.." />
   </export>
 </package>

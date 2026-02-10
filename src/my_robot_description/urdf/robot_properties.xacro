@@ -9,7 +9,7 @@
     사용: ${이름} 또는 ${이름 * 2 + 1} (수식 가능!)
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-
+  
 
     
   <!-- 프레임 치수 (m 단위!) -->
@@ -19,7 +19,7 @@
   <!-- Y방향 300mm = 0.300m (좌우 폭) -->
   <xacro:property name="frame_width" value="0.300"/>
   <!-- Z방향 240mm = 0.240m (높이) -->
-  <xacro:property name="frame_height" value="0.240"/>
+  <xacro:property name="frame_height" value="0.243"/>
   <!-- 지상고 57.5mm = 0.0575m -->
   <xacro:property name="ground_clearance" value="0.0575"/>
   
@@ -37,13 +37,38 @@
   <xacro:property name="wheel_x_offset" value="-0.100"/>
   <!-- 바퀴 Z 오프셋: 하판 아래 25mm -->
   <xacro:property name="wheel_z_offset" value="-0.025"/>
+
+
   
+  <!-- 캐스터 치수 -->
   
+  <!--캐스터 볼 반지름: 12.5mm-->
+  <xacro:property name="caster_radius" value="0.0125"/>
+  <!--
+    계산:
+      바퀴 바닥 → 지면: Z = -0.0575 (base_link 기준)
+      바퀴 중심: Z = -0.045
+      바퀴 반지름: 32.5mm
+        → 지면 Z = -0.005(탭) -0.020(클램프 중심) - 0.0325 = -0.0575 (base_link 기준)
+      
+      캐스터 볼 중심도 지면에서 볼 반지름만큼 위에 있어야 함
+        캐스터 Z = -0.0575 + 0.012.5 = -0.045
+  -->
+  
+  <!-- 전방 100mm (프레임 앞쪽) -->
+  <xacro:property name="caster_x_offset" value="0.100"/>
+  <!-- 좌우 캐스터 사이 거리: 280mm (Y=±140mm) -->
+  <xacro:property name="caster_y_separation" value="0.280"/>
+  <!-- base_link 원점(하판 바닥)에서 캐스터 볼 중심까지: 45mm -->
+  <xacro:property name="caster_z_offset" value="-0.045"/>
+  
+
 
   <!-- 질량 (kg) -->
   
-  <xacro:property name="base_mass" value="4.79"/>
+  <xacro:property name="base_mass" value="4.73"/>
   <xacro:property name="wheel_mass" value="0.080"/>
+  <xacro:property name="caster_mass" value="0.030"/>
   <xacro:property name="lidar_mass" value="0.170"/>
   <xacro:property name="camera_mass" value="0.072"/>
   <xacro:property name="imu_mass" value="0.010"/>
@@ -106,5 +131,16 @@
                izz="${(1/2)*m*r*r}"/>
     </inertial>
   </xacro:macro>
+
+  <!-- 구체 관성 매크로 (기존에 없었으므로 추가) -->
+  <xacro:macro name="sphere_inertia" params="m r">
+    <inertial>
+      <mass value="${m}"/>
+      <inertia ixx="${(2/5)*m*r*r}" ixy="0.0" ixz="0.0"
+               iyy="${(2/5)*m*r*r}" iyz="0.0"
+               izz="${(2/5)*m*r*r}"/>
+    </inertial>
+  </xacro:macro>
+  
 
 </robot>

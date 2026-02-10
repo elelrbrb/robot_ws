@@ -17,6 +17,8 @@
   
   <gazebo>
     <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <!-- 바퀴 쌍 수: 1 (2륜 차동 구동) -->
+      <num_wheel_pairs>1</num_wheel_pairs>
       <left_joint>left_wheel_joint</left_joint>
       <right_joint>right_wheel_joint</right_joint>
       <wheel_separation>${wheel_separation}</wheel_separation>
@@ -29,16 +31,47 @@
       <max_wheel_torque>5.0</max_wheel_torque>
       <max_wheel_acceleration>2.0</max_wheel_acceleration>
       <command_topic>cmd_vel</command_topic>
+
       <odometry_topic>odom</odometry_topic>
       <odometry_frame>odom</odometry_frame>
       <robot_base_frame>base_footprint</robot_base_frame>
+
       <publish_odom>true</publish_odom>
       <publish_odom_tf>true</publish_odom_tf>
       <publish_wheel_tf>false</publish_wheel_tf>
+      <odometry_source>1</odometry_source>
+      <!--
+        오도메트리 계산 소스:
+          0: 엔코더 (Joint 위치에서 계산) ← 더 현실적!
+          1: World (Gazebo 내부 위치에서 계산) ← Ground Truth!
+          
+        차이:
+          소스 0 (엔코더):
+            → 바퀴 회전량으로 계산 → 슬립이 있으면 부정확!
+            → 실제 로봇과 동일한 오차 패턴!
+            → Sim-to-Real 테스트에 적합!
+            
+          소스 1 (World):
+            → Gazebo가 알고 있는 정확한 위치 사용
+            → 오차 없음 = Ground Truth!
+            → 알고리즘 검증에 유용 (비교 기준)
+            
+        ⭐ 개발 단계에서는 1 (정확한 odom으로 빠른 개발)
+          Sim-to-Real 단계에서는 0 (현실적 odom으로 테스트)
+      -->
       <update_rate>50.0</update_rate>
     </plugin>
   </gazebo>
 
+   <gazebo>
+    <plugin name="joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
+    
+      <update_rate>50</update_rate>
+      <joint_name>left_wheel_joint</joint_name>
+      <joint_name>right_wheel_joint</joint_name>
+    </plugin>
+  </gazebo>
+ 
 
 
   <!-- LiDAR Sensor -->
@@ -46,7 +79,7 @@
   <gazebo reference="lidar_link">
     <sensor name="lidar" type="ray">
       <always_on>true</always_on>
-      <visualize>true</visualize>
+      <visualize>false</visualize>
       <update_rate>5.5</update_rate>
       <ray>
         <scan>
@@ -62,11 +95,13 @@
           <max>12.0</max>
           <resolution>0.01</resolution>
         </range>
+
         <noise>
           <type>gaussian</type>
           <mean>0.0</mean>
           <stddev>0.005</stddev>
         </noise>
+
       </ray>
       <plugin name="lidar_controller" filename="libgazebo_ros_ray_sensor.so">
         <ros>
@@ -82,6 +117,17 @@
 
   <!-- Depth Camera Sensor -->
   
+  <!--RealSense D435 깊이 노이즈 특성: Stereo 기반 → 깊이 오차가 거리의 제곱에 비례
+    
+    σ_depth ≈ z² × baseline⁻¹ × focal_length⁻¹ × σ_disparity
+    
+    근거리(1m): σ ≈ 2~5mm
+    중거리(3m): σ ≈ 20~40mm
+    원거리(5m): σ ≈ 80~150mm
+    
+    Gazebo는 거리 비례 노이즈를 직접 지원하지 않으므로 평균적인 값을 사용하거나 ROS 2 노드에서 후처리로 추가!
+  -->
+
   <gazebo reference="camera_link">
     <sensor name="depth_camera" type="depth">
       <always_on>true</always_on>
@@ -98,7 +144,25 @@
           <near>0.1</near>
           <far>10.0</far>
         </clip>
+
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+          <!--
+            RGB 이미지 노이즈: σ = 0.007
+              → 픽셀 값(0~1 정규화)에 대한 표준편차
+              → 255 스케일에서: 0.007 × 255 ≈ 1.8
+              → 약 2 gray level의 노이즈
+              → 잘 조명된 실내에서의 일반적인 카메라 노이즈
+          -->
+        </noise>
+
+        <depth_camera>
+          <output>depths</output>
+        </depth_camera>
       </camera>
+
       <plugin name="depth_camera_controller" filename="libgazebo_ros_camera.so">
         <ros>
           <remapping>~/image_raw:=camera/color/image_raw</remapping>
@@ -110,6 +174,17 @@
         <!--
           ⚠️ camera_link가 아닌 camera_optical_frame → 이미지 데이터는 optical frame 기준으로 발행
         -->
+
+        <hack_baseline>0.07</hack_baseline>
+        <!--
+          hack_baseline: Stereo 베이스라인
+          D435: 50mm (IR 카메라 간 거리)
+            → 깊이 이미지의 노이즈 특성에 영향
+            → 0.07 (약간 더 넓게)
+        -->
+        <min_depth>0.1</min_depth>
+        <max_depth>10.0</max_depth>
+        <update_rate>30</update_rate>
       </plugin>
     </sensor>
   </gazebo>
@@ -117,23 +192,60 @@
 
 
   <!-- IMU Sensor -->
+
+  <!--
+      IMU 노이즈는 2가지 유형:
+      1. Rate Noise (White Noise): 매 측정마다 랜덤
+      2. Bias (Random Walk): 천천히 누적되는 체계적 오차
+  
+      실제 BNO055 데이터시트:
+        Gyroscope:
+        Noise Density: 0.014 °/s/√Hz = 0.000244 rad/s/√Hz
+        → σ_rate = noise_density × √(bandwidth)
+        → bandwidth ≈ 100 Hz
+        → σ_rate = 0.000244 × √100 = 0.00244 rad/s
+        
+      Accelerometer:
+        Noise Density: 150 μg/√Hz = 0.00147 m/s²/√Hz
+        → σ_rate = 0.00147 × √100 = 0.0147 m/s²
+-->
   
   <gazebo reference="imu_link">
     <sensor name="imu" type="imu">
       <always_on>true</always_on>
       <update_rate>100.0</update_rate>
       <imu>
+        <!-- 각속도 (Gyroscope) 노이즈 -->
         <angular_velocity>
-          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></x>
-          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></y>
-          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></z>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev><bias_mean>0.0000075</bias_mean><bias_stddev>0.0000008</bias_stddev></noise></x>
+          <!--
+            Bias Random Walk: 느리게 변하는 체계적 편향
+              → 시간이 지나면 측정값이 서서히 한쪽으로 치우침
+              → 이것이 IMU "드리프트"의 원인!
+              → BNO055 Fusion 모드는 드리프트가 매우 작음
+              
+            bias_mean: 초기 편향의 평균
+            bias_stddev: 편향이 변하는 속도
+          -->
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev><bias_mean>0.0000075</bias_mean><bias_stddev>0.0000008</bias_stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev><bias_mean>0.0000075</bias_mean><bias_stddev>0.0000008</bias_stddev></noise></z>
         </angular_velocity>
+        
+        <!-- 선가속도 (Accelerometer) 노이즈 -->
         <linear_acceleration>
-          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></x>
-          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></y>
-          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></z>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev><bias_mean>0.1</bias_mean><bias_stddev>0.001</bias_stddev></noise></x>
+          <!--
+            가속도계 바이어스:
+              → 중력 방향 감지에 영향
+              → 0.1 m/s² ≈ 10 mg의 초기 바이어스
+              → 실제 센서 캘리브레이션으로 줄일 수 있지만 완벽히 제거는 불가!
+              → 이것이 EKF에서 가속도계를 "장기 기준"으로만 사용하는 이유!
+          -->
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev><bias_mean>0.1</bias_mean><bias_stddev>0.001</bias_stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev><bias_mean>0.1</bias_mean><bias_stddev>0.001</bias_stddev></noise></z>
         </linear_acceleration>
       </imu>
+      
       <plugin name="imu_controller" filename="libgazebo_ros_imu_sensor.so">
         <ros>
           <remapping>~/out:=imu/data</remapping>

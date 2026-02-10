@@ -31,14 +31,62 @@
         <color rgba="0.75 0.75 0.75 1.0"/>
       </material>
     </visual>
-    
+
+
+    <!-- ===== Collision 1: 메인 프레임 ===== -->
     <collision>
       <origin xyz="0.0 0.0 ${frame_height/2}" rpy="0.0 0.0 0.0"/>
       <geometry>
         <box size="${frame_length} ${frame_width} ${frame_height}"/>
       </geometry>
     </collision>
-    
+
+    <!-- ===== Collision 2: LiDAR 폴 ===== -->
+    <collision>
+      <origin xyz="${lidar_x} 0.0 ${frame_height + 0.075}" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.030 0.030 0.150"/>
+      </geometry>
+    </collision>
+    <!--
+      LiDAR 폴: 20×20mm 프로파일이지만 약간 여유있게 30×30
+      높이: 150mm
+      Z 중심: 243(상판) + 75(폴 절반) = 318mm
+      
+      왜 추가?
+        폴이 프레임 위로 150mm 돌출
+        → Nav2 costmap에서 이 영역을 고려해야 → 좁은 통로에서 폴이 걸릴 수 있음
+    -->
+
+    <!-- ===== Collision 3: LiDAR 본체 + 마운트 ===== -->
+    <collision>
+      <origin xyz="${lidar_x} 0.0 ${lidar_z}" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <cylinder radius="0.045" length="0.060"/>
+      </geometry>
+    </collision>
+    <!--
+      LiDAR 마운트판(80×80) + 센서(Ø70×41) 통합
+  
+      반지름 45mm, 높이 60mm으로 근사 
+        → 실제 lidar_link에도 collision이 있지만 base_link 쪽에도 마운트 영역을 커버
+    -->
+
+     <!-- ===== Collision 4: 카메라 마운트 (전방 돌출) ===== -->
+    <collision>
+      <origin xyz="${frame_length/2 + 0.015} 0.0 ${camera_z}" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.060 0.100 0.035"/>
+      </geometry>
+    </collision>
+    <!--
+      카메라+마운트가 프레임 전방으로 돌출!
+      
+      프레임 끝(175mm) + 마운트(~30mm) 영역 → 벽에 접근할 때 카메라가 먼저 부딪히도록!
+    -->
+
+
+  
     <inertial>
       <origin xyz="${base_com_x} ${base_com_y} ${base_com_z}" 
               rpy="0.0 0.0 0.0"/>

@@ -58,6 +58,8 @@ setup(
         
         # (7) Config 파일 (YAML 등)
         ('share/' + package_name + '/config', glob('config/*.yaml')),
+
+        ('share/' + package_name + '/worlds', glob('worlds/*.world')),
     ],
     
     install_requires=['setuptools'],
@@ -77,7 +79,9 @@ setup(
                 # 예: 'my_node = my_robot_description.my_node:main',
             'static_tf_broadcaster_example = my_robot_description.static_tf_broadcaster_example:main',    
             'tf_listener_example = my_robot_description.tf_listener_example:main',    
-            'odom_publisher_example = my_robot_description.odom_publisher_example:main',    
+            'odom_publisher_example = my_robot_description.odom_publisher_example:main',
+            'tuning_test = my_robot_description.tuning_test:main',
+                
         ],
     },
 )
