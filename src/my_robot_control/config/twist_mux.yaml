@@ -1,0 +1,34 @@
+# ════════════════════════════════════════════════════
+# twist_mux: 다중 cmd_vel 입력 우선순위 관리
+# ════════════════════════════════════════════════════
+
+twist_mux:
+  ros__parameters:
+    topics:
+      # ---- 4순위: 키보드 (개발/디버그용) ----
+      keyboard:
+        topic: /cmd_vel_key
+        timeout: 0.5
+          # 0.5초 동안 메시지 안 오면 → 이 소스 비활성
+          # 키보드에서 손 떼면 → 0.5초 후 자동 비활성!
+        priority: 10
+          # 숫자가 높을수록 우선!
+          # 10 = 가장 낮은 우선순위
+
+
+      # ---- 3순위: Nav2 (자율주행) ----
+      navigation:
+        topic: /cmd_vel_nav
+        timeout: 0.5
+        priority: 20
+
+      
+    # ---- 1순위: 비상 정지 (e-stop) ----
+    locks:
+      e_stop:
+        topic: /e_stop
+        timeout: 0.0
+          # timeout=0: 한 번 활성화되면 → 해제될 때까지 영구 잠금!
+        priority: 255
+          # 최고 우선순위!
+          # → e_stop 활성화 시 모든 cmd_vel = 0!

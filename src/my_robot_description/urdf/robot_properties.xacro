@@ -9,7 +9,7 @@
     사용: ${이름} 또는 ${이름 * 2 + 1} (수식 가능!)
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  
+
 
     
   <!-- 프레임 치수 (m 단위!) -->

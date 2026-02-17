@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<!--
+  ROS 2 패키지의 "신분증".
+    colcon이 이 파일을 읽어서:
+      1. 빌드 순서 결정 (의존성 그래프)
+      2. 설치 시 필요한 라이브러리 확인
+      3. ros2 pkg list에 등록
+-->
+<package format="3">
+  <name>my_robot_odometry_cpp</name>
+  <version>0.1.0</version>
+  <description>C++ odometry node for differential drive robot</description>
+
+  <maintainer email="student@robot.com">student</maintainer>
+  <license>MIT</license>
+
+  <!-- 빌드 시스템: ament_cmake -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+    <!--
+      ament_cmake: ROS 2의 C++ 빌드 시스템
+      Python 패키지는 여기가 ament_python이었다!
+    -->
+
+
+  <!-- 빌드 + 실행 의존성 -->
+   <!-- ROS 2 C++ 클라이언트 라이브러리 (Node, Publisher, Subscriber 등) -->
+  <depend>rclcpp</depend>
+    
+    <!-- sensor_msgs/msg/JointState: /joint_states 메시지 -->
+  <depend>sensor_msgs</depend>
+    
+    <!-- nav_msgs/msg/Odometry, Path: 출력 메시지 -->
+  <depend>nav_msgs</depend>
+    <!-- geometry_msgs/msg/TransformStamped, PoseStamped -->
+  <depend>geometry_msgs</depend>
+    
+    <!-- TF 브로드캐스터: odom → base_footprint 변환 발행 -->
+  <depend>tf2_ros</depend>
+    <!-- TF2 핵심 라이브러리 -->
+  <depend>tf2</depend>
+    
+
+
+  <!-- 테스트 의존성 -->
+  <test_depend>ament_cmake_gtest</test_depend>
+    <!-- Google Test 프레임워크 연동 -->
+
+
+  <export>
+    <build_type>ament_cmake</build_type>
+      <!-- colcon에게 "이 패키지는 CMake로 빌드하라"고 알림 -->
+  </export>
+</package>
