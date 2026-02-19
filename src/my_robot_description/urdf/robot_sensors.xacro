@@ -29,6 +29,7 @@
   </link>
 
 
+  
 
   <!-- Camera (RealSense D435) -->
   
@@ -67,20 +68,45 @@
     → realsense2_camera 드라이버가 이걸 자동으로 발행하지만 시뮬에서는 직접 정의해야 할 수 있음
   -->
   
-  <joint name="camera_optical_joint" type="fixed">
+  <joint name="camera_color_joint" type="fixed">
     <parent link="camera_link"/>
-    <child link="camera_optical_frame"/>
-    <origin xyz="0.0 0.0 0.0" rpy="${-pi/2} 0.0 ${-pi/2}"/>
-    <!--
-      rpy 변환:
-        Roll = -π/2: Y→Z 변환
-        Yaw  = -π/2: X→Y 변환
-        결과: 로봇좌표 → 카메라 광학 좌표
-    -->
+    <child link="camera_color_frame"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
+
+  <joint name="camera_color_optical_joint" type="fixed">
+    <parent link="camera_color_frame"/>
+    <child link="camera_color_optical_frame"/>
+    <origin xyz="0.0 0.0 0.0" rpy="${-pi/2} 0.0 ${-pi/2}"/>
+  </joint>
+
+  <joint name="camera_depth_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="camera_depth_frame"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <joint name="camera_depth_optical_joint" type="fixed">
+    <parent link="camera_depth_frame"/>
+    <child link="camera_depth_optical_frame"/>
+    <origin xyz="0.0 0.0 0.0" rpy="${-pi/2} 0.0 ${-pi/2}"/>
+  </joint>
+
+  <!--
+    rpy 변환:
+      Roll = -π/2: Y→Z 변환
+      Yaw  = -π/2: X→Y 변환
+      결과: 로봇좌표 → 카메라 광학 좌표
+  -->
   
+
   <!-- 가상 Link: 좌표 변환용, 물리적 실체 없음 -->
-  <link name="camera_optical_frame"/>
+  <link name="camera_color_frame"/>
+  <link name="camera_color_optical_frame"/>
+
+  <link name="camera_depth_frame"/>
+  <link name="camera_depth_optical_frame"/>
+
 
 
 

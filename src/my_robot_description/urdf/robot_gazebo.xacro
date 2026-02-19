@@ -115,6 +115,7 @@
 
 
 
+
   <!-- Depth Camera Sensor -->
   
   <!--RealSense D435 깊이 노이즈 특성: Stereo 기반 → 깊이 오차가 거리의 제곱에 비례
@@ -128,8 +129,8 @@
     Gazebo는 거리 비례 노이즈를 직접 지원하지 않으므로 평균적인 값을 사용하거나 ROS 2 노드에서 후처리로 추가!
   -->
 
-  <gazebo reference="camera_link">
-    <sensor name="depth_camera" type="depth">
+  <gazebo reference="camera_color_frame">
+    <sensor type="camera" name="color_camera">
       <always_on>true</always_on>
       <visualize>false</visualize>
       <update_rate>30.0</update_rate>
@@ -141,8 +142,8 @@
           <format>B8G8R8</format>
         </image>
         <clip>
-          <near>0.1</near>
-          <far>10.0</far>
+          <near>0.02</near>
+          <far>300</far>
         </clip>
 
         <noise>
@@ -157,39 +158,59 @@
               → 잘 조명된 실내에서의 일반적인 카메라 노이즈
           -->
         </noise>
-
-        <depth_camera>
-          <output>depths</output>
-        </depth_camera>
       </camera>
 
-      <plugin name="depth_camera_controller" filename="libgazebo_ros_camera.so">
+      <plugin name="camera_color" filename="libgazebo_ros_camera.so">
         <ros>
           <remapping>~/image_raw:=camera/color/image_raw</remapping>
-          <remapping>~/depth/image_raw:=camera/depth/image_rect_raw</remapping>
           <remapping>~/camera_info:=camera/color/camera_info</remapping>
-          <remapping>~/depth/camera_info:=camera/depth/camera_info</remapping>
         </ros>
-        <frame_name>camera_optical_frame</frame_name>
-        <!--
-          ⚠️ camera_link가 아닌 camera_optical_frame → 이미지 데이터는 optical frame 기준으로 발행
-        -->
-
-        <hack_baseline>0.07</hack_baseline>
-        <!--
-          hack_baseline: Stereo 베이스라인
-          D435: 50mm (IR 카메라 간 거리)
-            → 깊이 이미지의 노이즈 특성에 영향
-            → 0.07 (약간 더 넓게)
-        -->
-        <min_depth>0.1</min_depth>
-        <max_depth>10.0</max_depth>
-        <update_rate>30</update_rate>
+        <frame_name>camera_color_optical_frame</frame_name>
       </plugin>
     </sensor>
   </gazebo>
 
 
+  <gazebo reference="camera_depth_frame">
+    <sensor type="depth" name="depth_camera">
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <update_rate>30.0</update_rate>
+      <camera>
+        <horizontal_fov>1.5184</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>B8G8R8</format>
+          <!-- depth 센서도 내부적으로는 이미지 생성 -->
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>10.0</far>
+        </clip>
+
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.005</stddev>
+        </noise>
+      </camera>
+
+      <plugin name="camera_depth" filename="libgazebo_ros_camera.so">
+        <ros>
+          <remapping>~/image_raw:=camera/depth/image_rect_raw</remapping>
+          <remapping>~/camera_info:=camera/depth/camera_info</remapping>
+          <remapping>~/points:=/camera/depth/color/points</remapping>
+        </ros>
+        <frame_name>camera_depth_optical_frame</frame_name>
+        <min_depth>0.1</min_depth>
+        <max_depth>10.0</max_depth>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+  
 
   <!-- IMU Sensor -->
 
