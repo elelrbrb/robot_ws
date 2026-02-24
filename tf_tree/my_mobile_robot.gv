@@ -1,0 +1,41 @@
+digraph G {
+node [shape=box];
+"base_footprint" [label="base_footprint"];
+"base_link" [label="base_link"];
+"camera_link" [label="camera_link"];
+"camera_color_frame" [label="camera_color_frame"];
+"camera_color_optical_frame" [label="camera_color_optical_frame"];
+"camera_depth_frame" [label="camera_depth_frame"];
+"camera_depth_optical_frame" [label="camera_depth_optical_frame"];
+"front_left_caster_link" [label="front_left_caster_link"];
+"front_right_caster_link" [label="front_right_caster_link"];
+"imu_link" [label="imu_link"];
+"left_wheel" [label="left_wheel"];
+"lidar_link" [label="lidar_link"];
+"right_wheel" [label="right_wheel"];
+node [shape=ellipse, color=blue, fontcolor=blue];
+"base_footprint" -> "base_joint" [label="xyz: 0 0 0.0575 \nrpy: 0 -0 0"]
+"base_joint" -> "base_link"
+"base_link" -> "camera_joint" [label="xyz: 0.1875 0 0.2605 \nrpy: 0 -0 0"]
+"camera_joint" -> "camera_link"
+"camera_link" -> "camera_color_joint" [label="xyz: 0 0 0 \nrpy: 0 -0 0"]
+"camera_color_joint" -> "camera_color_frame"
+"camera_color_frame" -> "camera_color_optical_joint" [label="xyz: 0 0 0 \nrpy: -1.5708 -0 -1.5708"]
+"camera_color_optical_joint" -> "camera_color_optical_frame"
+"camera_link" -> "camera_depth_joint" [label="xyz: 0 0 0 \nrpy: 0 -0 0"]
+"camera_depth_joint" -> "camera_depth_frame"
+"camera_depth_frame" -> "camera_depth_optical_joint" [label="xyz: 0 0 0 \nrpy: -1.5708 -0 -1.5708"]
+"camera_depth_optical_joint" -> "camera_depth_optical_frame"
+"base_link" -> "front_left_caster_joint" [label="xyz: 0.1 0.14 -0.045 \nrpy: 0 -0 0"]
+"front_left_caster_joint" -> "front_left_caster_link"
+"base_link" -> "front_right_caster_joint" [label="xyz: 0.1 -0.14 -0.045 \nrpy: 0 -0 0"]
+"front_right_caster_joint" -> "front_right_caster_link"
+"base_link" -> "imu_joint" [label="xyz: 0.1 0 0.085 \nrpy: 0 -0 0"]
+"imu_joint" -> "imu_link"
+"base_link" -> "left_wheel_joint" [label="xyz: -0.1 0.1725 -0.025 \nrpy: 0 -0 0"]
+"left_wheel_joint" -> "left_wheel"
+"base_link" -> "lidar_joint" [label="xyz: -0.13 0 0.424 \nrpy: 0 -0 0"]
+"lidar_joint" -> "lidar_link"
+"base_link" -> "right_wheel_joint" [label="xyz: -0.1 -0.1725 -0.025 \nrpy: 0 -0 0"]
+"right_wheel_joint" -> "right_wheel"
+}

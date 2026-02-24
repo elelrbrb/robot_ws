@@ -23,13 +23,9 @@
       <right_joint>right_wheel_joint</right_joint>
       <wheel_separation>${wheel_separation}</wheel_separation>
       <wheel_diameter>${wheel_radius * 2}</wheel_diameter>
-      <!--
-        ${wheel_radius * 2} = 0.0325 * 2 = 0.065
-        → 변수에 수식 적용!
-        → 직경 = 반지름 × 2
-      -->
-      <max_wheel_torque>5.0</max_wheel_torque>
-      <max_wheel_acceleration>2.0</max_wheel_acceleration>
+
+      <max_wheel_torque>10.0</max_wheel_torque>
+      <max_wheel_acceleration>1.0</max_wheel_acceleration>
       <command_topic>cmd_vel</command_topic>
 
       <odometry_topic>odom</odometry_topic>
@@ -39,7 +35,7 @@
       <publish_odom>true</publish_odom>
       <publish_odom_tf>true</publish_odom_tf>
       <publish_wheel_tf>false</publish_wheel_tf>
-      <odometry_source>1</odometry_source>
+      <odometry_source>0</odometry_source>
       <!--
         오도메트리 계산 소스:
           0: 엔코더 (Joint 위치에서 계산) ← 더 현실적!
@@ -59,14 +55,13 @@
         ⭐ 개발 단계에서는 1 (정확한 odom으로 빠른 개발)
           Sim-to-Real 단계에서는 0 (현실적 odom으로 테스트)
       -->
-      <update_rate>50.0</update_rate>
+      <update_rate>${odom_update_rate}</update_rate>
     </plugin>
   </gazebo>
 
    <gazebo>
     <plugin name="joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
-    
-      <update_rate>50</update_rate>
+      <update_rate>${odom_update_rate}</update_rate>
       <joint_name>left_wheel_joint</joint_name>
       <joint_name>right_wheel_joint</joint_name>
     </plugin>
@@ -80,26 +75,37 @@
     <sensor name="lidar" type="ray">
       <always_on>true</always_on>
       <visualize>false</visualize>
-      <update_rate>5.5</update_rate>
+      <update_rate>${lidar_update_rate}</update_rate>
       <ray>
         <scan>
           <horizontal>
-            <samples>360</samples>
+            <samples>${lidar_samples}</samples>
             <resolution>1.0</resolution>
             <min_angle>-3.14159</min_angle>
             <max_angle>3.14159</max_angle>
           </horizontal>
         </scan>
         <range>
-          <min>0.15</min>
-          <max>12.0</max>
+          <min>${lidar_range_min}</min>
+          <max>${lidar_range_max}</max>
           <resolution>0.01</resolution>
         </range>
 
         <noise>
           <type>gaussian</type>
           <mean>0.0</mean>
-          <stddev>0.005</stddev>
+          <stddev>${lidar_noise}</stddev>
+          <!--
+            σ = 5mm
+
+            실제 RPLiDAR A1 노이즈 특성:
+              근거리(1m): σ ≈ 3~5mm
+              중거리(5m): σ ≈ 10~15mm
+              원거리(10m): σ ≈ 30~50mm
+              
+            Gazebo는 거리에 따른 가변 노이즈를 지원하지 않으므로
+            평균적인 값을 사용: 5mm
+          -->
         </noise>
 
       </ray>
@@ -133,12 +139,12 @@
     <sensor type="camera" name="color_camera">
       <always_on>true</always_on>
       <visualize>false</visualize>
-      <update_rate>30.0</update_rate>
+      <update_rate>${camera_update_rate}</update_rate>
       <camera>
         <horizontal_fov>1.20428</horizontal_fov>
         <image>
-          <width>640</width>
-          <height>480</height>
+          <width>${camera_width}</width>
+          <height>${camera_height}</height>
           <format>B8G8R8</format>
         </image>
         <clip>
@@ -149,7 +155,7 @@
         <noise>
           <type>gaussian</type>
           <mean>0.0</mean>
-          <stddev>0.007</stddev>
+          <stddev>${camera_noise}</stddev>
           <!--
             RGB 이미지 노이즈: σ = 0.007
               → 픽셀 값(0~1 정규화)에 대한 표준편차
@@ -175,12 +181,13 @@
     <sensor type="depth" name="depth_camera">
       <always_on>true</always_on>
       <visualize>false</visualize>
-      <update_rate>30.0</update_rate>
+      <update_rate>${camera_update_rate}</update_rate>
+
       <camera>
         <horizontal_fov>1.5184</horizontal_fov>
         <image>
-          <width>640</width>
-          <height>480</height>
+          <width>${camera_width}</width>
+          <height>${camera_height}</height>
           <format>B8G8R8</format>
           <!-- depth 센서도 내부적으로는 이미지 생성 -->
         </image>
@@ -192,7 +199,7 @@
         <noise>
           <type>gaussian</type>
           <mean>0.0</mean>
-          <stddev>0.005</stddev>
+          <stddev>${depth_noise}</stddev>
         </noise>
       </camera>
 
@@ -202,7 +209,9 @@
           <remapping>~/camera_info:=camera/depth/camera_info</remapping>
           <remapping>~/points:=/camera/depth/color/points</remapping>
         </ros>
+
         <frame_name>camera_depth_optical_frame</frame_name>
+        
         <min_depth>0.1</min_depth>
         <max_depth>10.0</max_depth>
       </plugin>
@@ -232,13 +241,15 @@
 -->
   
   <gazebo reference="imu_link">
-    <sensor name="imu" type="imu">
+    <gravity>true</gravity>
+
+    <sensor name="bno055_imu" type="imu">
       <always_on>true</always_on>
-      <update_rate>100.0</update_rate>
+      <update_rate>${imu_update_rate}</update_rate>
+      <visualize>false</visualize>
       <imu>
         <!-- 각속도 (Gyroscope) 노이즈 -->
         <angular_velocity>
-          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev><bias_mean>0.0000075</bias_mean><bias_stddev>0.0000008</bias_stddev></noise></x>
           <!--
             Bias Random Walk: 느리게 변하는 체계적 편향
               → 시간이 지나면 측정값이 서서히 한쪽으로 치우침
@@ -248,13 +259,22 @@
             bias_mean: 초기 편향의 평균
             bias_stddev: 편향이 변하는 속도
           -->
-          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev><bias_mean>0.0000075</bias_mean><bias_stddev>0.0000008</bias_stddev></noise></y>
-          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev><bias_mean>0.0000075</bias_mean><bias_stddev>0.0000008</bias_stddev></noise></z>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>${imu_gyro_noise}</stddev>
+              <bias_mean>0.0</bias_mean>
+              <bias_stddev>4.32e-06</bias_stddev>
+              <dynamic_bias_stddev>4.32e-06</dynamic_bias_stddev>
+              <dynamic_bias_correlation_time>300</dynamic_bias_correlation_time>
+            </noise>
+          </x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>${imu_gyro_noise}</stddev><bias_mean>0.0</bias_mean><bias_stddev>4.32e-06</bias_stddev><dynamic_bias_stddev>4.32e-06</dynamic_bias_stddev><dynamic_bias_correlation_time>300</dynamic_bias_correlation_time></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>${imu_gyro_noise}</stddev><bias_mean>0.0</bias_mean><bias_stddev>4.32e-06</bias_stddev><dynamic_bias_stddev>4.32e-06</dynamic_bias_stddev><dynamic_bias_correlation_time>300</dynamic_bias_correlation_time></noise></z>
         </angular_velocity>
         
         <!-- 선가속도 (Accelerometer) 노이즈 -->
         <linear_acceleration>
-          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev><bias_mean>0.1</bias_mean><bias_stddev>0.001</bias_stddev></noise></x>
           <!--
             가속도계 바이어스:
               → 중력 방향 감지에 영향
@@ -262,14 +282,22 @@
               → 실제 센서 캘리브레이션으로 줄일 수 있지만 완벽히 제거는 불가!
               → 이것이 EKF에서 가속도계를 "장기 기준"으로만 사용하는 이유!
           -->
-          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev><bias_mean>0.1</bias_mean><bias_stddev>0.001</bias_stddev></noise></y>
-          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev><bias_mean>0.1</bias_mean><bias_stddev>0.001</bias_stddev></noise></z>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>${imu_accel_noise}</stddev>
+              <bias_mean>0.0</bias_mean>
+              <bias_stddev>3.85e-05</bias_stddev>
+            </noise>
+          </x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>${imu_accel_noise}</stddev><bias_mean>0.0</bias_mean><bias_stddev>3.85e-05</bias_stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>${imu_accel_noise}</stddev><bias_mean>0.0</bias_mean><bias_stddev>3.85e-05</bias_stddev></noise></z>
         </linear_acceleration>
       </imu>
       
-      <plugin name="imu_controller" filename="libgazebo_ros_imu_sensor.so">
+      <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
         <ros>
-          <remapping>~/out:=imu/data</remapping>
+          <remapping>~/out:=imu/data_raw</remapping>
         </ros>
         <frame_name>imu_link</frame_name>
         <initial_orientation_as_reference>false</initial_orientation_as_reference>
@@ -292,4 +320,23 @@
   </gazebo>
 -->
 
+
+
+  <gazebo>
+    <plugin name="ground_truth" filename="libgazebo_ros_p3d.so">
+      <ros>
+        <remapping>odom:=/ground_truth/odom</remapping>
+      </ros>
+      
+      <frame_name>odom</frame_name>
+      <body_name>base_footprint</body_name>
+      <update_rate>50</update_rate>
+      <xyz_offset>0 0 0</xyz_offset>
+      <rpy_offset>0 0 0</rpy_offset>
+      <gaussian_noise>0</gaussian_noise>
+    </plugin>
+  </gazebo>
+
+
+ 
 </robot>

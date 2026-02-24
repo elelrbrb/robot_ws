@@ -29,8 +29,11 @@ setup(
         'console_scripts': [
             'laser_scan_analyzer = my_robot_perception.laser_scan_analyzer:main',
             'lidar_processor_node = my_robot_perception.lidar_processor_node:main',
-            'depth_processor_node = my_robot_perception.depth_processor_node:main',
-                
+            'imu_processor_node = my_robot_perception.imu_processor_node:main',
+            'allan_variance = my_robot_perception.allan_variance:main',
+            'depth_converter_node = my_robot_perception.depth_converter_node:main',
+
+            
         ],
     },
 )

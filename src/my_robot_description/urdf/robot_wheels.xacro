@@ -2,7 +2,6 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
 
-
   <!-- ============================================ -->
   <!-- 바퀴 매크로 정의 -->
   <!-- ============================================ -->  
@@ -17,11 +16,6 @@
     -->
     
     <joint name="${prefix}_wheel_joint" type="continuous">
-      <!--
-        ${prefix}_wheel_joint
-          → "left_wheel_joint" 또는 "right_wheel_joint"
-          → 문자열 조합이 가능
-      -->
       <parent link="base_link"/>
       <child link="${prefix}_wheel"/>
       <origin xyz="${wheel_x_offset} ${y_reflect * wheel_separation / 2} ${wheel_z_offset}" rpy="0.0 0.0 0.0"/>
@@ -32,7 +26,8 @@
       -->
       <axis xyz="0 1 0"/>
       
-      
+  
+
       <!-- ⭐ 감쇠 추가! -->
       <dynamics damping="0.1" friction="0.05"/>
       <!--
@@ -81,39 +76,41 @@
       </collision>
       
       <xacro:cylinder_inertia m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
-      <!-- ⭐ 관성 모멘트 매크로 호출 → robot_properties.xacro에서 정의한 매크로 -->
     </link>
     
+
 
     <!-- Gazebo 마찰 설정 -->
     <gazebo reference="${prefix}_wheel">
       <material>Gazebo/Black</material>
       <mu1>1.0</mu1>
       <mu2>1.0</mu2>
-      <kp>1000000.0</kp>
-      <kd>10.0</kd>
+      <!-- 
+        바퀴 마찰 계수
+          μ=1.0: 고무 바퀴 (높은 마찰!)
+            
+        이 값이 너무 작으면:
+          → 바퀴 공회전! → 오도메트리가 실제보다 앞서감!
+          → Sim-to-Real Gap 원인! 
+      -->
+      <kp>1e6</kp>
+      <kd>100</kd>
+      <!-- 
+        접촉 강성 (kp)과 감쇠 (kd)
+          → 바퀴-바닥 접촉의 "딱딱함"
+          → kp 너무 크면: 진동
+          → kp 너무 작면: 바퀴가 바닥에 파묻힘 
+      -->
     </gazebo>
     
   </xacro:macro>
 
 
-  <!-- 매크로 호출 — 바퀴 2개 생성! -->
 
+  <!-- 매크로 호출 — 바퀴 2개 생성! -->
   <xacro:wheel prefix="left" y_reflect="1"/>
-  <!--
-    이 한 줄로 생성되는 것:
-      ✅ left_wheel_joint (continuous, Y=+0.172.5)
-      ✅ left_wheel (link with visual/collision/inertial)
-      ✅ Gazebo 마찰 설정
-  -->
-  
   <xacro:wheel prefix="right" y_reflect="-1"/>
-  <!--
-    이 한 줄로 생성되는 것:
-      ✅ right_wheel_joint (continuous, Y=-0.172.5)
-      ✅ right_wheel (link with visual/collision/inertial)
-      ✅ Gazebo 마찰 설정
-  -->
+  
 
 
 
@@ -176,17 +173,18 @@
     </link>
     
 
+
     <!-- Gazebo 마찰 설정 -->
     <gazebo reference="${prefix}_caster_link">
       <material>Gazebo/DarkGrey</material>
-      <mu1>0.001</mu1>
-      <mu2>0.001</mu2>
+      <mu1>0.01</mu1>
+      <mu2>0.01</mu2>
       <!--
         ⭐ 핵심: 마찰이 거의 0!
        
         mu = 0.001:
           구동 바퀴: mu = 1.0 (높은 마찰 = 접지력)
-          캐스터: mu = 0.001 (거의 무마찰 = 자유 미끄러짐)
+          캐스터: mu = 0.01 (거의 무마찰 = 자유 미끄러짐)
           
         왜?
           차동 구동의 회전 원리:
@@ -194,17 +192,9 @@
               이때 캐스터는 옆으로 미끄러져야 함!
               캐스터 마찰이 높으면 → 회전 못 함!
       -->
-      <kp>1000000.0</kp>
-      <kd>100.0</kd>
-      <!--
-        kp: 접촉 강성 (높아야 바닥을 안 뚫음)
-        kd: 접촉 감쇠 (바운스 방지)
-        
-        kd를 10→100으로 올림:
-          캐스터가 작고 가벼워서 진동이 생기기 쉬움
-          감쇠를 높여서 안정화!
-      -->
-    </gazebo>    \
+      <kp>1e6</kp>
+      <kd>100</kd>        
+    </gazebo>   
     
   </xacro:macro>
 

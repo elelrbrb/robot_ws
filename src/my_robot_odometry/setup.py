@@ -30,6 +30,8 @@ setup(
     entry_points={
         'console_scripts': [
             'odom_publisher_example = my_robot_odometry.odom_publisher_example:main',
+            'odom_evaluator = my_robot_odometry.odom_evaluator:main',    
+
                 
         ],
     },

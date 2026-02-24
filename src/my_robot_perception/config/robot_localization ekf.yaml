@@ -1,0 +1,29 @@
+ekf_filter_node:
+  ros__parameters:
+    # IMU 입력 설정
+    imu0: /imu/data
+        # 우리 imu_processor_node의 출력!
+
+    imu0_config: [false, false, false,  # x, y, z (위치 → 사용 안 함!)
+                  true,  true,  true,   # roll, pitch, yaw (자세 → 사용!)
+                  false, false, false,  # vx, vy, vz (속도 → 사용 안 함!)
+                  true,  true,  true,   # ωx, ωy, ωz (각속도 → 사용!)
+                  true,  true,  false]  # ax, ay, az (가속도 → 일부 사용)
+
+    imu0_differential: false
+        # false: 절대 자세 사용 (BNO055 퓨전 출력)
+        # true: 자세 변화량 사용 (Raw IMU일 때)
+        #
+        # BNO055는 절대 자세 제공 → false!
+        # MPU6050은 절대 자세 없음 → true (각속도 적분)
+
+    imu0_relative: true
+        # true: 첫 번째 측정을 기준으로 상대 자세
+        # → 시작 시 Yaw=0에서 시작!
+        # → odom 프레임과 정렬!
+
+    imu0_remove_gravitational_acceleration: false
+        # Gazebo IMU는 중력 포함!
+        # → EKF가 내부적으로 중력 제거!
+        # (우리 노드에서 remove_gravity=false로 설정하고
+        #  EKF에 맡기는 것이 더 안정적!)

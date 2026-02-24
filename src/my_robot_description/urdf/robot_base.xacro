@@ -41,6 +41,7 @@
       </geometry>
     </collision>
 
+
     <!-- ===== Collision 2: LiDAR 폴 ===== -->
     <collision>
       <origin xyz="${lidar_x} 0.0 ${frame_height + 0.075}" rpy="0.0 0.0 0.0"/>
@@ -58,6 +59,7 @@
         → Nav2 costmap에서 이 영역을 고려해야 → 좁은 통로에서 폴이 걸릴 수 있음
     -->
 
+
     <!-- ===== Collision 3: LiDAR 본체 + 마운트 ===== -->
     <collision>
       <origin xyz="${lidar_x} 0.0 ${lidar_z}" rpy="0.0 0.0 0.0"/>
@@ -71,6 +73,7 @@
       반지름 45mm, 높이 60mm으로 근사 
         → 실제 lidar_link에도 collision이 있지만 base_link 쪽에도 마운트 영역을 커버
     -->
+
 
      <!-- ===== Collision 4: 카메라 마운트 (전방 돌출) ===== -->
     <collision>
@@ -86,7 +89,7 @@
     -->
 
 
-  
+
     <inertial>
       <origin xyz="${base_com_x} ${base_com_y} ${base_com_z}" 
               rpy="0.0 0.0 0.0"/>
@@ -103,4 +106,5 @@
     </inertial>
   </link>
 
+    
 </robot>
