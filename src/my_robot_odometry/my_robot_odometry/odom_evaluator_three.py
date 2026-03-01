@@ -18,10 +18,10 @@ class OdomEvaluator(Node):
 
 
         self.gt_sub = self.create_subscription(
-            Odometry, '/ground_truth/odom', self.gt_callback, 10
+            Odometry, '/odometry/filtered', self.gt_callback, 10
         )
         self.odom_sub = self.create_subscription(
-            Odometry, '/odometry/filtered_set', self.odom_callback, 10
+            Odometry, '//odometry/filtered_set', self.odom_callback, 10
         )
 
 

@@ -159,6 +159,7 @@ class ImuProcessorNode(Node):
         # ════════════════════════════════════════
         # 6. 디버깅 출력 (50 프레임마다 = 0.5초)
         # ════════════════════════════════════════
+        '''
         if self.msg_count % 50 == 0:
             # Yaw 변화율
             yaw_rate = 0.0
@@ -187,7 +188,7 @@ class ImuProcessorNode(Node):
             self.info_pub.publish(status)
 
             self.prev_yaw = yaw
-
+        '''
 
 
 

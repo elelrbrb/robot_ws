@@ -219,7 +219,7 @@ def generate_launch_description():
         robot_state_publisher_node,
         gazebo_launch,
         spawn_robot,
-        rviz_node,
+        # rviz_node,
 
         imu_processor,
         lidar_processor,

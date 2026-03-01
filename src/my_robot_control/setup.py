@@ -36,7 +36,12 @@ setup(
         'console_scripts': [
             'safety_layer_node = my_robot_control.safety_layer_node:main',
             'e_stop_node = my_robot_control.e_stop_node:main',
+            'ekf_ros_node = my_robot_control.ekf_ros_node:main',
+
+
+
                 
+
         ],
     },
 )

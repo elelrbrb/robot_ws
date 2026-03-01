@@ -33,7 +33,7 @@
       <robot_base_frame>base_footprint</robot_base_frame>
 
       <publish_odom>true</publish_odom>
-      <publish_odom_tf>true</publish_odom_tf>
+      <publish_odom_tf>false</publish_odom_tf>
       <publish_wheel_tf>false</publish_wheel_tf>
       <odometry_source>0</odometry_source>
       <!--
@@ -321,7 +321,6 @@
 -->
 
 
-
   <gazebo>
     <plugin name="ground_truth" filename="libgazebo_ros_p3d.so">
       <ros>
@@ -336,7 +335,6 @@
       <gaussian_noise>0</gaussian_noise>
     </plugin>
   </gazebo>
-
 
  
 </robot>
