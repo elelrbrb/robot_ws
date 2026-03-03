@@ -38,6 +38,7 @@ setup(
             'e_stop_node = my_robot_control.e_stop_node:main',
             'ekf_ros_node = my_robot_control.ekf_ros_node:main',
 
+            'test_driver= my_robot_control.test_driver:main', 
 
 
                 

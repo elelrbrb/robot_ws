@@ -53,7 +53,7 @@ ekf_filter_node:
 
     odom0: /odom
 
-    odom0_config: [false, false,  false,     # x, y, z
+    odom0_config: [true, true,  false,     # x, y, z
                    false, false, false,     # roll, pitch, yaw
                    true,  false, false,     # vx, vy, vz
                    false, false, false,     # ω_roll, ω_pitch, ω_yaw

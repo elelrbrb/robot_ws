@@ -7,7 +7,6 @@ Panels:
         - /Odometry1/Covariance1/Position1
         - /Odometry2/Shape1
         - /Odometry2/Covariance1/Position1
-        - /Odometry3/Status1
         - /Odometry3/Shape1
         - /Odometry3/Covariance1/Position1
         - /Odometry3/Covariance1/Orientation1
@@ -258,7 +257,7 @@ Visualization Manager:
           Value: true
         Value: false
       Enabled: true
-      Keep: 100
+      Keep: 500
       Name: Odometry
       Position Tolerance: 0.10000000149011612
       Shape:
@@ -297,7 +296,7 @@ Visualization Manager:
           Value: true
         Value: false
       Enabled: true
-      Keep: 100
+      Keep: 500
       Name: Odometry
       Position Tolerance: 0.10000000149011612
       Shape:
@@ -434,5 +433,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1387
-  X: 148
-  Y: 260
+  X: 291
+  Y: 248

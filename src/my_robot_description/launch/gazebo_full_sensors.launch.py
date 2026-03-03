@@ -33,6 +33,8 @@ def generate_launch_description():
     pkg_share = get_package_share_directory('my_robot_description')
     gazebo_ros_share = get_package_share_directory('gazebo_ros')
 
+    gazebo_params_path = os.path.join(pkg_share,'config','gazebo_params.yaml')
+
     default_model_path = os.path.join(pkg_share, 'urdf', 'my_robot.urdf.xacro')
     default_world_path = os.path.join(pkg_share, 'worlds', 'test_room.world')
     default_rviz_config = os.path.join(pkg_share, 'rviz', 'full_sensors.rviz')
@@ -111,7 +113,9 @@ def generate_launch_description():
             os.path.join(gazebo_ros_share, 'launch', 'gazebo.launch.py')
         ),
         launch_arguments={
-            'world': LaunchConfiguration('world')
+            'world': LaunchConfiguration('world'),
+            'params_file': gazebo_params_path
+            
         }.items()
     )
 
@@ -154,7 +158,7 @@ def generate_launch_description():
     # 5. IMU Processor Node
     # ============================================================
     imu_processor = Node(
-        package='my_robot_perception',
+        package='my_robot_odometry',
         executable='imu_processor_node',
         name='imu_processor',
         output='screen',
@@ -167,6 +171,10 @@ def generate_launch_description():
             'orientation_cov_yaw': 0.01,
             
             # 🔹 Allan 결과 반영
+            '''
+            'angular_vel_cov': 3.97e-08,
+            'linear_accel_cov': 2.28e-04,
+            '''
             'angular_vel_cov': 1.20e-07,
             'linear_accel_cov': 8.85e-04,
 
