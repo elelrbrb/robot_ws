@@ -126,7 +126,7 @@ class EKFNode(Node):
         # ════════════════════════════════════════
         self.filtered_pub = self.create_publisher(
             Odometry,
-            '/odometry/filtered_set',
+            '/odometry/filtered',
             10
         )
 
@@ -171,24 +171,26 @@ class EKFNode(Node):
     def _declare_parameters(self):
         """ROS 파라미터 선언."""
 
-        # 초기 공분산
-        self.declare_parameter('initial_cov_x', 0.05)
-        self.declare_parameter('initial_cov_y', 0.05)
-        self.declare_parameter('initial_cov_theta', 0.02)
+        # [1] Initial State Covariance (P0) - 초기 불확실성
+        self.declare_parameter('initial_cov_x', 0.1)
+        self.declare_parameter('initial_cov_y', 0.1)
+        self.declare_parameter('initial_cov_theta', 0.05)
 
-        # Motion Noise (Thrun α 파라미터)
-        self.declare_parameter('alpha1', 0.01)
-        self.declare_parameter('alpha2', 0.005)
-        self.declare_parameter('alpha3', 0.005)
-        self.declare_parameter('alpha4', 0.01)
+        # [2] Process Noise (Q) - Thrun's Motion Model Alphas
+            # 기구학적 오차: 속도에 비례하여 발생하는 시스템 예측 노이즈
+        self.declare_parameter('alpha1', 0.02)  # 회전 시 회전 오차 (Yaw drift)
+        self.declare_parameter('alpha2', 0.01)  # 직진 시 회전 오차 (짝짝이 바퀴)
+        self.declare_parameter('alpha3', 0.02)  # 직진 시 직진 오차 (바퀴 슬립)
+        self.declare_parameter('alpha4', 0.01)  # 회전 시 직진 오차
 
-        # Odometry Measurement Noise
-        self.declare_parameter('odom_noise_x', 0.0005)
-        self.declare_parameter('odom_noise_y', 0.0005)
-        self.declare_parameter('odom_noise_theta', 0.002)
-
-        # IMU Measurement Noise
-        self.declare_parameter('imu_noise_theta', 2e-4)
+        # [3] Measurement Noise (R) - Odometry (엔코더)
+        self.declare_parameter('odom_noise_x', 0.001)      
+        self.declare_parameter('odom_noise_y', 0.001)      
+        self.declare_parameter('odom_noise_theta', 10.0)   
+        
+        # [4] Measurement Noise (R) - IMU (BNO055 Yaw)
+        self.declare_parameter('imu_noise_theta', 0.01)    
+        
 
         # 프레임 ID
         self.declare_parameter('odom_frame', 'odom')

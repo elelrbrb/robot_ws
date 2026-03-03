@@ -262,15 +262,32 @@
           <x>
             <noise type="gaussian">
               <mean>0.0</mean>
-              <stddev>${imu_gyro_noise}</stddev>
-              <bias_mean>0.0</bias_mean>
-              <bias_stddev>4.32e-06</bias_stddev>
-              <dynamic_bias_stddev>4.32e-06</dynamic_bias_stddev>
+              <stddev>${imu_gyro_noise_stddev}</stddev>
+              <bias_mean>${imu_gyro_noise_bias_mean}</bias_mean>
+              <bias_stddev>${imu_gyro_noise_bias_stddev}</bias_stddev>
+              <dynamic_bias_stddev>${imu_gyro_noise_dynamic_bias_stddev}</dynamic_bias_stddev>
               <dynamic_bias_correlation_time>300</dynamic_bias_correlation_time>
             </noise>
           </x>
-          <y><noise type="gaussian"><mean>0.0</mean><stddev>${imu_gyro_noise}</stddev><bias_mean>0.0</bias_mean><bias_stddev>4.32e-06</bias_stddev><dynamic_bias_stddev>4.32e-06</dynamic_bias_stddev><dynamic_bias_correlation_time>300</dynamic_bias_correlation_time></noise></y>
-          <z><noise type="gaussian"><mean>0.0</mean><stddev>${imu_gyro_noise}</stddev><bias_mean>0.0</bias_mean><bias_stddev>4.32e-06</bias_stddev><dynamic_bias_stddev>4.32e-06</dynamic_bias_stddev><dynamic_bias_correlation_time>300</dynamic_bias_correlation_time></noise></z>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>${imu_gyro_noise_stddev}</stddev>
+              <bias_mean>${imu_gyro_noise_bias_mean}</bias_mean>
+              <bias_stddev>${imu_gyro_noise_bias_stddev}</bias_stddev>
+              <dynamic_bias_stddev>${imu_gyro_noise_dynamic_bias_stddev}</dynamic_bias_stddev>
+              <dynamic_bias_correlation_time>300</dynamic_bias_correlation_time>
+            </noise>
+          </y>
+          <z><noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>${imu_gyro_noise_stddev}</stddev>
+            <bias_mean>${imu_gyro_noise_bias_mean}</bias_mean>
+            <bias_stddev>${imu_gyro_noise_bias_stddev}</bias_stddev>
+            <dynamic_bias_stddev>${imu_gyro_noise_dynamic_bias_stddev}</dynamic_bias_stddev>
+            <dynamic_bias_correlation_time>300</dynamic_bias_correlation_time>
+          </noise>
+        </z>
         </angular_velocity>
         
         <!-- 선가속도 (Accelerometer) 노이즈 -->
@@ -285,13 +302,27 @@
           <x>
             <noise type="gaussian">
               <mean>0.0</mean>
-              <stddev>${imu_accel_noise}</stddev>
-              <bias_mean>0.0</bias_mean>
-              <bias_stddev>3.85e-05</bias_stddev>
+              <stddev>${imu_accel_noise_stddev}</stddev>
+              <bias_mean>${imu_accel_noise_bias_mean}</bias_mean>
+              <bias_stddev>${imu_accel_noise_bias_stddev}</bias_stddev>
             </noise>
           </x>
-          <y><noise type="gaussian"><mean>0.0</mean><stddev>${imu_accel_noise}</stddev><bias_mean>0.0</bias_mean><bias_stddev>3.85e-05</bias_stddev></noise></y>
-          <z><noise type="gaussian"><mean>0.0</mean><stddev>${imu_accel_noise}</stddev><bias_mean>0.0</bias_mean><bias_stddev>3.85e-05</bias_stddev></noise></z>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>${imu_accel_noise_stddev}</stddev>
+              <bias_mean>${imu_accel_noise_bias_mean}</bias_mean>
+              <bias_stddev>${imu_accel_noise_bias_stddev}</bias_stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>${imu_accel_noise_stddev}</stddev>
+              <bias_mean>${imu_accel_noise_bias_mean}</bias_mean>
+              <bias_stddev>${imu_accel_noise_bias_stddev}</bias_stddev>
+              </noise>
+            </z>
         </linear_acceleration>
       </imu>
       

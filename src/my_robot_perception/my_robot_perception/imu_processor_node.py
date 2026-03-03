@@ -35,16 +35,16 @@ class ImuProcessorNode(Node):
         # ════════════════════════════════════════
        
         # Orientation
-        self.declare_parameter('orientation_cov_roll', 5e-5)
-        self.declare_parameter('orientation_cov_pitch', 5e-5)
-        self.declare_parameter('orientation_cov_yaw', 2e-4)
-
-        # Angular Velocity
-        self.declare_parameter('angular_vel_cov', 3.74e-12)
-        # Linear Acceleration
-        self.declare_parameter('linear_accel_cov', 2.84e-08)
+        self.declare_parameter('orientation_cov_roll', 0.0025)
+        self.declare_parameter('orientation_cov_pitch', 0.0025)
+        self.declare_parameter('orientation_cov_yaw', 0.01)
         
+        # Angular Velocity (Allan 결과 반영)
+        self.declare_parameter('angular_vel_cov', 1.20e-07)
+        # Linear Acceleration (Allan 결과 반영)
+        self.declare_parameter('linear_accel_cov', 8.85e-04)
 
+        
 
         # 중력 제거 여부
         self.declare_parameter('remove_gravity', False)

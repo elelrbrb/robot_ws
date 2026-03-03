@@ -302,7 +302,8 @@ def analyze_imu_data(gyro_z, accel_z, dt):
     print(f'  BI tau:            {params_g["bias_instability_tau"]:.1f} s')
 
     # → EKF covariance 변환
-    gyro_cov = params_g['white_noise'] ** 2 * dt
+    fs = 1.0 / dt
+    gyro_cov = params_g['white_noise'] ** 2 * fs
         # σ²_d = σ²_c × Δt (연속 → 이산 변환)
     print(f'\n  → angular_velocity_covariance: {gyro_cov:.2e}')
     print(f'    (이 값을 EKF의 R 행렬에!)')
@@ -314,7 +315,7 @@ def analyze_imu_data(gyro_z, accel_z, dt):
     print(f'  White Noise (VRW): {params_a["white_noise"]:.6e} m/s²/√Hz')
     print(f'  Bias Instability:  {params_a["bias_instability"]:.6e} m/s²')
 
-    accel_cov = params_a['white_noise'] ** 2 * dt
+    accel_cov = params_a['white_noise'] ** 2 * fs
     print(f'\n  → linear_acceleration_covariance: {accel_cov:.2e}')
 
     # ---- 플롯 ----

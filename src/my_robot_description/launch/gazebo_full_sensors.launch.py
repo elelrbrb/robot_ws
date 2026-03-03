@@ -162,13 +162,13 @@ def generate_launch_description():
             'use_sim_time': LaunchConfiguration('use_sim_time'),
 
             # 🔹 Orientation covariance
-            'orientation_cov_roll': 5e-5,
-            'orientation_cov_pitch': 5e-5,
-            'orientation_cov_yaw': 2e-4,
-
-            # 🔹 Allan 기반 값
-            'angular_vel_cov': 3.74e-12,
-            'linear_accel_cov': 2.84e-08,
+            'orientation_cov_roll': 0.0025,
+            'orientation_cov_pitch': 0.0025,
+            'orientation_cov_yaw': 0.01,
+            
+            # 🔹 Allan 결과 반영
+            'angular_vel_cov': 1.20e-07,
+            'linear_accel_cov': 8.85e-04,
 
             'remove_gravity': False,
         }]
@@ -219,7 +219,7 @@ def generate_launch_description():
         robot_state_publisher_node,
         gazebo_launch,
         spawn_robot,
-        # rviz_node,
+        #rviz_node,
 
         imu_processor,
         lidar_processor,

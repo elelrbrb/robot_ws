@@ -32,7 +32,6 @@ setup(
             'odom_publisher_example = my_robot_odometry.odom_publisher_example:main',
             'odom_evaluator = my_robot_odometry.odom_evaluator:main',
             'odom_evaluator_two = my_robot_odometry.odom_evaluator_two:main',
-            'odom_evaluator_three = my_robot_odometry.odom_evaluator_three:main',
 
                 
         ],

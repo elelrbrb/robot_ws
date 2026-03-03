@@ -72,24 +72,29 @@ def generate_launch_description():
             'use_sim_time': LaunchConfiguration('use_sim_time'),
 
             # ───────────── 초기 공분산 ─────────────
-            'initial_cov_x': 0.05,
-            'initial_cov_y': 0.05,
-            'initial_cov_theta': 0.02,
+            'initial_cov_x': 0.1,
+            'initial_cov_y': 0.1,
+            'initial_cov_theta': 0.05,
 
             # ───────────── Motion Noise (Thrun α) ─────────────
-            'alpha1': 0.01,
-            'alpha2': 0.005,
-            'alpha3': 0.005,
-            'alpha4': 0.01,
-
+            # 실제 로봇은 완벽하게 제어되지 않기 때문에
+            # 너무 작게 주면 필터가 비현실적으로 움직임을 믿음
+            'alpha1': 0.02,
+            'alpha2': 0.01,
+            'alpha3': 0.02,
+            'alpha4': 0.01,            
+            
             # ───────────── Odometry Measurement Noise ─────────────
-            'odom_noise_x': 0.0005,
-            'odom_noise_y': 0.0005,
-            'odom_noise_theta': 0.002,
+            # Odom은 IMU보다 보통 신뢰도가 낮음
+            'odom_noise_x': 0.001,
+            'odom_noise_y': 0.001,
+            'odom_noise_theta': 10.0,
 
             # ───────────── IMU Measurement Noise (Yaw) ─────────────
-            # IMU Processor의 orientation_cov_yaw와 동일하게!
-            'imu_noise_theta': 2e-4,
+            # 반드시 orientation_cov_yaw 값과 일관성 유지
+            'imu_noise_theta': 0.01,
+            
+            
 
             # ───────────── Frame 설정 ─────────────
             'odom_frame': 'odom',

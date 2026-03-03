@@ -5,7 +5,10 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Odometry1/Covariance1/Position1
+        - /Odometry2/Shape1
         - /Odometry2/Covariance1/Position1
+        - /Odometry3/Status1
+        - /Odometry3/Shape1
         - /Odometry3/Covariance1/Position1
         - /Odometry3/Covariance1/Orientation1
       Splitter Ratio: 0.49275362491607666
@@ -215,7 +218,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: false
-      Enabled: true
+      Enabled: false
       Keep: 3
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -235,8 +238,8 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /odometry/filtered_set
-      Value: true
+        Value: /odom
+      Value: false
     - Angle Tolerance: 0.10000000149011612
       Class: rviz_default_plugins/Odometry
       Covariance:
@@ -255,7 +258,7 @@ Visualization Manager:
           Value: true
         Value: false
       Enabled: true
-      Keep: 3
+      Keep: 100
       Name: Odometry
       Position Tolerance: 0.10000000149011612
       Shape:
@@ -265,7 +268,7 @@ Visualization Manager:
         Color: 26; 95; 180
         Head Length: 0.30000001192092896
         Head Radius: 0.10000000149011612
-        Shaft Length: 1
+        Shaft Length: 0.10000000149011612
         Shaft Radius: 0.05000000074505806
         Value: Arrow
       Topic:
@@ -294,7 +297,7 @@ Visualization Manager:
           Value: true
         Value: false
       Enabled: true
-      Keep: 3
+      Keep: 100
       Name: Odometry
       Position Tolerance: 0.10000000149011612
       Shape:
@@ -304,7 +307,7 @@ Visualization Manager:
         Color: 0; 255; 0
         Head Length: 0.30000001192092896
         Head Radius: 0.10000000149011612
-        Shaft Length: 1
+        Shaft Length: 0.10000000149011612
         Shaft Radius: 0.05000000074505806
         Value: Arrow
       Topic:
@@ -314,6 +317,40 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /ground_truth/odom
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/LaserScan
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 0
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: LaserScan
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.05000000074505806
+      Style: Flat Squares
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /scan_filtered
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
   Enabled: true
   Global Options:
@@ -361,7 +398,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 9.405632972717285
+      Distance: 6.133988380432129
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -376,10 +413,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.2247965335845947
+      Pitch: 1.1447967290878296
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.133580207824707
+      Yaw: 2.8935821056365967
     Saved: ~
 Window Geometry:
   Displays:
@@ -397,5 +434,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1387
-  X: 207
-  Y: 120
+  X: 148
+  Y: 260

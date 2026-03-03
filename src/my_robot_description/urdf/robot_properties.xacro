@@ -164,9 +164,19 @@
     <xacro:property name="camera_width"         value="640"/>
     <xacro:property name="camera_height"        value="480"/>
 
-    <!-- IMU 노이즈 -->
-    <xacro:property name="imu_gyro_noise"       value="0.000193"/>
-    <xacro:property name="imu_accel_noise"      value="0.0168"/>
-    <xacro:property name="imu_update_rate"      value="100"/>
     
+    <!-- IMU 노이즈 -->
+    <xacro:property name="imu_gyro_noise_stddev"                value="0.000199"/>
+    <xacro:property name="imu_gyro_noise_bias_mean"             value="0.0"/>
+    <xacro:property name="imu_gyro_noise_bias_stddev"           value="9.95e-07"/>
+    <xacro:property name="imu_gyro_noise_dynamic_bias_stddev"   value="9.95e-07"/>
+    
+    <xacro:property name="imu_accel_noise_stddev"               value="0.0171"/>
+    <xacro:property name="imu_accel_noise_bias_mean"            value="0.0"/>
+    <xacro:property name="imu_accel_noise_bias_stddev"          value="2.28e-04"/>
+
+    <xacro:property name="imu_update_rate"      value="100"/>
+
+
+
 </robot>
