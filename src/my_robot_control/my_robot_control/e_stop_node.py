@@ -22,8 +22,8 @@ class EStopNode(Node):
       locks:
         e_stop:
           topic: /e_stop
-          timeout: 0.0      ← 영구 잠금!
-          priority: 255      ← 최고 우선순위!
+          timeout: 0.0      
+          priority: 255     
     """
 
     def __init__(self):
@@ -49,17 +49,20 @@ class EStopNode(Node):
             Bool, '/e_stop_toggle', self.toggle_callback, 10
         )
 
+
     def toggle_callback(self, msg: Bool):
         """외부에서 비상 정지 토글."""
         self.e_stop_active = msg.data
         state = "ACTIVE (로봇 정지!)" if self.e_stop_active else "RELEASED (정상 운행)"
         self.get_logger().warn(f'[E-Stop] {state}')
 
+
     def publish_state(self):
         """현재 E-Stop 상태를 주기적으로 발행."""
         msg = Bool()
         msg.data = self.e_stop_active
         self.pub.publish(msg)
+
 
 
 def main(args=None):

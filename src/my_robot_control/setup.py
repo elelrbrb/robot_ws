@@ -40,6 +40,14 @@ setup(
 
             'test_driver= my_robot_control.test_driver:main', 
 
+            'path_publisher_node= my_robot_control.path_publisher_node:main', 
+            'pure_pursuit_node= my_robot_control.pure_pursuit_node:main', 
+
+            'figure8_challenge= my_robot_control.figure8_challenge:main', 
+
+
+ 
+            
 
                 
 

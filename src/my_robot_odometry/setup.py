@@ -30,11 +30,15 @@ setup(
     entry_points={
         'console_scripts': [
             'odom_publisher_example = my_robot_odometry.odom_publisher_example:main',
+            
             'odom_evaluator = my_robot_odometry.odom_evaluator:main',
             'odom_evaluator_two = my_robot_odometry.odom_evaluator_two:main',
 
             'imu_processor_node = my_robot_odometry.imu_processor_node:main',
             'nis_monitor= my_robot_odometry.nis_monitor:main',  
+
+            'path_evaluator_node= my_robot_odometry.path_evaluator_node:main',  
+            
             
 
         ],

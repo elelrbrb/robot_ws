@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # ════════════════════════════════════════════════════════════════
-# ekf_core.py
 # Day 65 — 차동 구동 로봇 EKF (Extended Kalman Filter) 핵심 엔진
-#
+
 # 상태: x = [x, y, θ]ᵀ
 # 입력: u = [v, ω]ᵀ
 # 측정: z_odom = [x, y, θ]ᵀ, z_imu = [θ]
-#
+
 # 모션 모델: RK2 (Midpoint) 적분
 # 야코비안: Day 64에서 해석적으로 유도
 # Process Noise: Thrun의 속도 의존 모델
@@ -18,37 +17,13 @@ import math
 
 def normalize_angle(angle: float) -> float:
     """
-    각도를 [-π, +π] 범위로 정규화.
-
-    왜 필요? (Day 64 Section F)
-      θ = +179° 에서 측정 = -179° 이면
-      ν = -179 - 179 = -358° → 실제 차이는 2°!
-      → normalize 없으면 EKF 발산!
-
-    구현:
-      atan2(sin, cos)는 항상 [-π, π] 반환.
-      → while 루프 없이 1번 연산! (루프: 극단 값에서 느림!)
+        각도를 [-π, +π] 범위로 정규화.
     """
     return math.atan2(math.sin(angle), math.cos(angle))
 
 
+
 class DiffDriveEKF:
-    """
-    차동 구동 로봇 전용 Extended Kalman Filter.
-
-    ┌─────────────────────────────────────────────┐
-    │  Predict:  u = [v, ω]  →  x⁻, P⁻          │
-    │  Update:   z_odom or z_imu  →  x⁺, P⁺     │
-    └─────────────────────────────────────────────┘
-
-    사용법:
-        ekf = DiffDriveEKF()
-        ekf.predict(v=0.5, omega=0.1, dt=0.02)
-        ekf.update_odometry(np.array([0.01, 0.0, 0.002]))
-        ekf.update_imu(theta_imu=0.003)
-        state = ekf.get_state()
-    """
-
     def __init__(self,
                  initial_state: np.ndarray = None,
                  initial_covariance: np.ndarray = None,
@@ -56,9 +31,6 @@ class DiffDriveEKF:
                  odom_noise: np.ndarray = None,
                  imu_noise: float = None):
         """
-        EKF 초기화.
-
-        Args:
             initial_state: [x, y, θ] 초기 상태 (기본: 원점)
             initial_covariance: 3×3 초기 공분산 (기본: 0.01×I)
             motion_noise_alpha: [α₁, α₂, α₃, α₄] Thrun 노이즈 파라미터
@@ -87,10 +59,10 @@ class DiffDriveEKF:
         else:
             self.P = np.diag([0.01, 0.01, 0.01])
             # 초기 불확실성:
-            #   σ_x = σ_y = 0.1m (10cm)
-            #   σ_θ = 0.1rad (5.7°)
-            # → 너무 작으면 첫 측정에 과반응!
-            # → 너무 크면 수렴 느림!
+                # σ_x = σ_y = 0.1m (10cm)
+                # σ_θ = 0.1rad (5.7°)
+                    # → 너무 작으면 첫 측정에 과반응!
+                    # → 너무 크면 수렴 느림!
 
         # ════════════════════════════════════════
         # Motion Noise: Thrun 모델 α 파라미터
@@ -101,7 +73,7 @@ class DiffDriveEKF:
             self.alpha = [0.05, 0.01, 0.01, 0.05]
             # α₁=0.05: 0.5 m/s에서 σ_v ≈ 0.025 m/s (5%)
             # α₄=0.05: 1.0 rad/s에서 σ_ω ≈ 0.05 rad/s (5%)
-            # → 실내 차동 구동 로봇의 일반적 범위
+                # → 실내 차동 구동 로봇의 일반적 범위
 
         # ════════════════════════════════════════
         # Measurement Noise
@@ -112,14 +84,14 @@ class DiffDriveEKF:
             self.R_odom = np.diag([0.001, 0.001, 0.005])
             # σ_x = σ_y = 0.032m (3.2cm)
             # σ_θ = 0.071rad (4.1°)
-            # → Day 53 Allan Variance 기반 추정
+                # → Day 53 Allan Variance 기반 추정
 
         if imu_noise is not None:
             self.R_imu = np.array([[imu_noise]])
         else:
             self.R_imu = np.array([[0.01]])
             # σ_θ = 0.1rad (5.7°)
-            # → BNO055 Day 53 기반: 자기장 간섭 포함
+                # → BNO055 Day 53 기반: 자기장 간섭 포함
 
         # ════════════════════════════════════════
         # 최소 Process Noise (정지 시에도 적용)
@@ -136,27 +108,16 @@ class DiffDriveEKF:
         self.last_kalman_gain_odom = None
         self.last_kalman_gain_imu = None
 
+
+
     # ═══════════════════════════════════════════════════════
     #  PREDICT — 모션 모델 + 야코비안 + Process Noise
     # ═══════════════════════════════════════════════════════
 
     def predict(self, v: float, omega: float, dt: float) -> None:
-        """
-        예측 단계: 입력 (v, ω)로 상태와 공분산을 전파.
-
-        수학 (Day 64 Section B~D):
-          x⁻ = f(x, u)
-          P⁻ = F × P × Fᵀ + Q
-
-        Args:
-            v: 선속도 [m/s] (오도메트리에서 계산된 실측값!)
-            omega: 각속도 [rad/s]
-            dt: 시간 간격 [s]
-        """
         if dt <= 0.0:
             return
-            # dt가 0이하이면 아무것도 하지 않음!
-            # → 센서 타이밍 오류 방어
+            # dt가 0이하이면 아무것도 하지 않음 → 센서 타이밍 오류 방어
 
         theta = self.x[2]
 
@@ -165,9 +126,8 @@ class DiffDriveEKF:
         # ────────────────────────────────────
         theta_mid = theta + omega * dt / 2.0
         # 왜 midpoint?
-        #   Euler: cos(θ_k) → 시작 각도만 사용 → 곡선 주행 시 부정확
-        #   RK2: cos(θ_k + δθ/2) → 중간 각도 → 2차 정확도!
-        #   (Day 38에서 상세 비교)
+            # Euler: cos(θ_k) → 시작 각도만 사용 → 곡선 주행 시 부정확
+            # RK2: cos(θ_k + δθ/2) → 중간 각도 → 2차 정확도!
 
         # ────────────────────────────────────
         # ② 상태 예측: x⁻ = f(x, u)
@@ -176,31 +136,21 @@ class DiffDriveEKF:
         sin_tm = math.sin(theta_mid)
 
         # f(x, u):
-        #   x_new = x + v × cos(θ_mid) × Δt
-        #   y_new = y + v × sin(θ_mid) × Δt
-        #   θ_new = θ + ω × Δt
+            # x_new = x + v × cos(θ_mid) × Δt
+            # y_new = y + v × sin(θ_mid) × Δt
+            # θ_new = θ + ω × Δt
         self.x[0] += v * cos_tm * dt
         self.x[1] += v * sin_tm * dt
         self.x[2] += omega * dt
         self.x[2] = normalize_angle(self.x[2])
-        # ★ 각도 래핑! 누적으로 ±π 넘어갈 수 있음!
 
         # ────────────────────────────────────
         # ③ 상태 전이 야코비안: F = ∂f/∂x
         # ────────────────────────────────────
         # Day 64 Section C에서 유도:
-        #   F = ┌ 1  0  -v×Δt×sin(θ_mid) ┐
-        #       │ 0  1   v×Δt×cos(θ_mid) │
-        #       └ 0  0   1                ┘
-        #
-        # F[0,2]: ∂f₁/∂θ = -v×Δt×sin(θ_mid)
-        #   물리적 의미: θ가 δθ 만큼 틀어지면
-        #   x 방향으로 -v×Δt×sin(θ_mid)×δθ 만큼 오차!
-        #
-        # F[1,2]: ∂f₂/∂θ = v×Δt×cos(θ_mid)
-        #   물리적 의미: θ가 δθ 만큼 틀어지면
-        #   y 방향으로 v×Δt×cos(θ_mid)×δθ 만큼 오차!
-
+            # F = ┌ 1  0  -v×Δt×sin(θ_mid) ┐
+            #     │ 0  1   v×Δt×cos(θ_mid) │
+            #     └ 0  0   1                ┘
         ds = v * dt  # 이동 거리
 
         F = np.array([
@@ -219,60 +169,42 @@ class DiffDriveEKF:
         # ⑤ 공분산 예측: P⁻ = F × P × Fᵀ + Q
         # ────────────────────────────────────
         self.P = F @ self.P @ F.T + Q
-        #
         # F @ P @ F.T:
-        #   현재 불확실성이 모션 모델을 통해 전파!
-        #   → θ 불확실성이 x, y 불확실성으로 전파!
-        #
-        # + Q:
-        #   모션 자체의 불확실성 추가!
-        #   → 움직일수록 불확실해짐!
+        # 현재 불확실성이 모션 모델을 통해 전파! → θ 불확실성이 x, y 불확실성으로 전파
+        
+        # + Q: 모션 자체의 불확실성 추가 → 움직일수록 불확실해짐!
 
         # ────────────────────────────────────
         # 공분산 대칭 보장 (수치 안정성)
         # ────────────────────────────────────
         self.P = (self.P + self.P.T) / 2.0
         # 부동소수점 오차로 P가 미세하게 비대칭 될 수 있음!
-        # 비대칭 → 역행렬 불안정 → EKF 발산!
-        # 강제 대칭화로 방지!
+            # 비대칭 → 역행렬 불안정 → EKF 발산!
+            # 강제 대칭화로 방지!
 
         self.step_count += 1
+
+
 
     # ═══════════════════════════════════════════════════════
     #  UPDATE — 오도메트리 측정
     # ═══════════════════════════════════════════════════════
 
     def update_odometry(self, z_odom: np.ndarray) -> None:
-        """
-        오도메트리 측정으로 상태 업데이트.
-
-        수학 (Day 64 Section E-2, G-3):
-          H = I₃
-          ν = z - x⁻ (θ 래핑!)
-          S = P⁻ + R
-          K = P⁻ × S⁻¹
-          x⁺ = x⁻ + K×ν
-          P⁺ = (I-KH) P⁻ (I-KH)ᵀ + K R Kᵀ  (Joseph Form)
-
-        Args:
-            z_odom: [x, y, θ] 오도메트리 측정값
-        """
         z = np.array(z_odom, dtype=np.float64)
 
         # ────────────────────────────────────
         # ① 측정 야코비안 H
         # ────────────────────────────────────
         H = np.eye(3)
-        # 오도메트리는 상태를 직접 관측!
-        # h(x) = x → H = ∂h/∂x = I
+            # 오도메트리는 상태를 직접 관측!
+            # h(x) = x → H = ∂h/∂x = I
 
         # ────────────────────────────────────
         # ② 혁신 (Innovation): ν = z - h(x⁻)
         # ────────────────────────────────────
         nu = z - self.x
         nu[2] = normalize_angle(nu[2])
-        # ★ θ 성분 래핑!
-        # z_θ = -179°, x⁻_θ = +179° → ν_θ = -358° → 래핑 → +2°!
 
         self.last_innovation_odom = nu.copy()
 
@@ -281,12 +213,11 @@ class DiffDriveEKF:
         # ────────────────────────────────────
         S = H @ self.P @ H.T + self.R_odom
         # H = I이므로 S = P⁻ + R_odom
-        #
-        # S의 물리적 의미:
-        #   "예측의 불확실성(P⁻)과 측정의 불확실성(R)의 합"
-        #   → S가 크면: 총 불확실성 높음
-        #   → K = P⁻/S → P⁻가 크면(예측 불확실): K ≈ 1 → 측정 신뢰!
-        #   → R이 크면(측정 불확실): K ≈ 0 → 예측 신뢰!
+        
+        # S의 물리적 의미: "예측의 불확실성(P⁻)과 측정의 불확실성(R)의 합"
+            # → S가 크면: 총 불확실성 높음
+            # → K = P⁻/S → P⁻가 크면(예측 불확실): K ≈ 1 → 측정 신뢰!
+            # → R이 크면(측정 불확실): K ≈ 0 → 예측 신뢰!
 
         # ────────────────────────────────────
         # ④ 칼만 이득: K = P⁻ Hᵀ S⁻¹
@@ -299,69 +230,49 @@ class DiffDriveEKF:
 
         K = self.P @ H.T @ S_inv
         # K: 3×3 행렬
-        # K[i,j]: "j번째 측정 혁신이 i번째 상태를 얼마나 보정?"
-        #
+            # K[i,j]: "j번째 측정 혁신이 i번째 상태를 얼마나 보정?"
+        
         # 예: K[0,2] → θ 혁신이 x를 보정하는 양
-        #   → P의 비대각 항(σ_xθ)이 클수록 → K[0,2]도 큼!
-        #   → "θ를 고치면 x도 같이 고쳐야" — 상관관계!
+            # → P의 비대각 항(σ_xθ)이 클수록 → K[0,2]도 큼!
+            # → "θ를 고치면 x도 같이 고쳐야" — 상관관계!
 
         self.last_kalman_gain_odom = K.copy()
+
 
         # ────────────────────────────────────
         # ⑤ 상태 업데이트: x⁺ = x⁻ + K × ν
         # ────────────────────────────────────
         self.x = self.x + K @ nu
         self.x[2] = normalize_angle(self.x[2])
-        # ★ 업데이트 후에도 θ 래핑!
 
         # ────────────────────────────────────
         # ⑥ 공분산 업데이트: Joseph Form
         # ────────────────────────────────────
         I_KH = np.eye(3) - K @ H
         self.P = I_KH @ self.P @ I_KH.T + K @ self.R_odom @ K.T
-        #
-        # 왜 Joseph Form?
-        #   간단 형태: P⁺ = (I - KH) × P⁻
-        #   → 이론적으로 동일!
-        #   → 하지만 부동소수점 오차로 P⁺가 음의 고유값을 가질 수 있음!
-        #   → 음의 분산 = 물리적으로 불가능 = EKF 발산!
-        #   → Joseph Form은 항상 양의 정부호 보장! (수치 안정!)
 
         # 대칭 보장
         self.P = (self.P + self.P.T) / 2.0
+
+
 
     # ═══════════════════════════════════════════════════════
     #  UPDATE — IMU Yaw 측정
     # ═══════════════════════════════════════════════════════
 
     def update_imu(self, theta_imu: float) -> None:
-        """
-        IMU Yaw 측정으로 상태 업데이트.
-
-        수학 (Day 64 Section E-3, G-4):
-          H = [0, 0, 1]  (1×3)
-          ν = normalize(θ_imu - θ⁻)  (스칼라)
-          S = P⁻[2,2] + R_imu  (스칼라!)
-          K = P⁻[:,2] / S  (3×1 벡터)
-          x⁺ = x⁻ + K×ν
-          P⁺ = (I - K×H) × P⁻
-
-        Args:
-            theta_imu: IMU에서 측정한 Yaw [rad]
-        """
-
+    
         # ────────────────────────────────────
         # ① 측정 야코비안 H
         # ────────────────────────────────────
         H = np.array([[0.0, 0.0, 1.0]])
-        # 1×3: IMU는 θ만 관측!
-        # h(x) = θ → H = [∂θ/∂x, ∂θ/∂y, ∂θ/∂θ] = [0, 0, 1]
+        # 1×3: IMU는 θ만 관측
+            # h(x) = θ → H = [∂θ/∂x, ∂θ/∂y, ∂θ/∂θ] = [0, 0, 1]
 
         # ────────────────────────────────────
         # ② 혁신 (스칼라)
         # ────────────────────────────────────
         nu = normalize_angle(theta_imu - self.x[2])
-        # 스칼라! float!
 
         self.last_innovation_imu = nu
 
@@ -369,12 +280,10 @@ class DiffDriveEKF:
         # ③ 혁신 공분산 (스칼라!)
         # ────────────────────────────────────
         S = H @ self.P @ H.T + self.R_imu
-        # S = P[2,2] + R_imu → 1×1 행렬 (실질 스칼라!)
+            # S = P[2,2] + R_imu → 1×1 행렬 (실질 스칼라!)
         S_val = S[0, 0]
-        #
         # 왜 스칼라?
-        #   측정이 1차원(θ만)이므로!
-        #   → 3×3 역행렬 대신 스칼라 나눗셈! → 매우 빠름!
+            # 측정이 1차원(θ만)이므로 → 3×3 역행렬 대신 스칼라 나눗셈! → 매우 빠름!
 
         if abs(S_val) < 1e-12:
             return  # S ≈ 0: 분산이 0 = 완벽한 측정? 불가능 → 스킵
@@ -385,33 +294,33 @@ class DiffDriveEKF:
         K = (self.P @ H.T) / S_val
         # P @ H.T = P @ [0,0,1]ᵀ = P의 3번째 열 = [P[0,2], P[1,2], P[2,2]]ᵀ
         # / S_val → 3×1 벡터
-        #
-        # K[0]: IMU θ 혁신이 x를 보정하는 양
-        #   → P[0,2](x-θ 상관)이 크면 → x도 보정!
+        
+        # K[0]: IMU θ 혁신이 x를 보정하는 양 → P[0,2](x-θ 상관)이 크면 → x도 보정!
         # K[1]: IMU θ 혁신이 y를 보정하는 양
         # K[2]: IMU θ 혁신이 θ를 보정하는 양 ← 보통 가장 큼!
 
         self.last_kalman_gain_imu = K.copy()
 
+
         # ────────────────────────────────────
         # ⑤ 상태 업데이트
         # ────────────────────────────────────
         self.x = self.x + (K * nu).flatten()
-        # K(3×1) × nu(스칼라) = 3×1 → flatten → 3,
+            # K(3×1) × nu(스칼라) = 3×1 → flatten → 3,
         self.x[2] = normalize_angle(self.x[2])
 
         # ────────────────────────────────────
         # ⑥ 공분산 업데이트
         # ────────────────────────────────────
         I_KH = np.eye(3) - K @ H
-        # K: 3×1, H: 1×3 → K@H: 3×3 ✓
+        # K: 3×1, H: 1×3 → K@H: 3×3 
         # self.P = I_KH @ self.P
-        # 간단 형태 사용 (IMU 업데이트는 보통 안정적)
-        # Joseph Form을 쓰려면:
         self.P = I_KH @ self.P @ I_KH.T + K @ self.R_imu @ K.T
 
         # 대칭 보장
         self.P = (self.P + self.P.T) / 2.0
+
+
 
     # ═══════════════════════════════════════════════════════
     #  INTERNAL — Process Noise 계산
@@ -421,23 +330,7 @@ class DiffDriveEKF:
                                 dt: float,
                                 cos_tm: float, sin_tm: float
                                 ) -> np.ndarray:
-        """
-        속도 의존 Process Noise Q 계산.
 
-        Thrun의 Probabilistic Robotics 모델:
-          σ_v = α₁|v| + α₂|ω|
-          σ_ω = α₃|v| + α₄|ω|
-
-        Q = W × Q_input × Wᵀ
-
-        W = ∂f/∂u (Day 64 Section C-2):
-          ┌ Δt×cos(θ_m)    -(v×Δt²/2)×sin(θ_m) ┐
-          │ Δt×sin(θ_m)     (v×Δt²/2)×cos(θ_m) │
-          └ 0                Δt                   ┘
-
-        Returns:
-            Q: 3×3 process noise 공분산
-        """
         a1, a2, a3, a4 = self.alpha
 
         # 입력 노이즈 표준편차
@@ -465,15 +358,17 @@ class DiffDriveEKF:
         # 상태 공간으로 전파: Q = W × Q_input × Wᵀ
         Q = W @ Q_input @ W.T
         # 결과: 3×3
-        #
+
         # 물리적 의미:
-        #   v에 노이즈가 있으면 → x, y에 cos/sin 방향으로 전파!
-        #   ω에 노이즈가 있으면 → θ에 직접 + x, y에 간접 전파!
-        #   → v가 클수록: x, y 노이즈 증가!
-        #   → ω가 클수록: θ 노이즈 증가!
-        #   → 정지 시: Q ≈ 매우 작음! (min_sigma만)
+            # v에 노이즈가 있으면 → x, y에 cos/sin 방향으로 전파!
+            # ω에 노이즈가 있으면 → θ에 직접 + x, y에 간접 전파!
+                # → v가 클수록: x, y 노이즈 증가!
+                # → ω가 클수록: θ 노이즈 증가!
+                # → 정지 시: Q ≈ 매우 작음! (min_sigma만)
 
         return Q
+
+
 
     # ═══════════════════════════════════════════════════════
     #  ACCESSOR

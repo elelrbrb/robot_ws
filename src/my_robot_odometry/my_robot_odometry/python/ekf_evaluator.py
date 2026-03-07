@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # ════════════════════════════════════════════════════════════════
-# ekf_evaluator_bag.py
 # Day 69 Advanced — ROS 2 Bag Data-Driven EKF Evaluator
-#
-# ★ 장난감 시뮬레이터를 제거하고 실제 Bag 데이터를 읽습니다.
-# ★ 타임스탬프 동기화(Temporal Sync) 알고리즘 탑재!
 # ════════════════════════════════════════════════════════════════
 
 import numpy as np
@@ -27,6 +23,7 @@ def quaternion_to_yaw(q) -> float:
     siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
     cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
     return math.atan2(siny_cosp, cosy_cosp)
+
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -64,13 +61,14 @@ class EvalMetrics:
     final_yaw_err: float = 0.0
 
 
+
 # ═══════════════════════════════════════════════════════════════
 #  ROS 2 Bag 파서 & 동기화 (핵심 추가 파트)
 # ═══════════════════════════════════════════════════════════════
 
 def parse_ros2_bag(bag_path: str) -> dict:
     """
-    Bag 파일에서 3개의 Odometry 토픽을 파싱합니다.
+    Bag 파일에서 3개의 Odometry 토픽을 파싱
     """
     print(f"[Parser] Opening Bag: {bag_path}")
     reader = SequentialReader()

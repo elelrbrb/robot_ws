@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # ════════════════════════════════════════════════════════════════
-# nis_monitor.py
 # Day 68 — NIS (Normalized Innovation Squared) 실시간 모니터
-#
+
 # EKF의 tuning 상태를 정량적으로 평가!
 # NIS가 χ² 분포를 따르면 → 잘 튜닝됨!
 # ════════════════════════════════════════════════════════════════
@@ -73,8 +72,8 @@ class NISMonitor(Node):
         self.timer = self.create_timer(10.0, self.report)
 
         # χ² 임계값
-        self.chi2_3_95 = 3.841   # 3 DOF, 95%
-        self.chi2_1_95 = 5.991   # 1 DOF, 95%
+        self.chi2_3_95 = 7.815   # 3 DOF, 95%
+        self.chi2_1_95 = 5.991   # 2 DOF, 95%
 
         self.get_logger().info('[NIS] Monitor started.')
 
@@ -188,12 +187,12 @@ class NISMonitor(Node):
                       if len(imu_nis) > 0 else 0)
 
         # 진단
-        odom_status = self._diagnose(odom_mean, 1.0, odom_exceed)
+        odom_status = self._diagnose(odom_mean, 3.0, odom_exceed)
         imu_status = self._diagnose(imu_mean, 2.0, imu_exceed)
 
         self.get_logger().info(
             f'[NIS Report]\n'
-            f'  Odom: mean={odom_mean:.2f} (ideal=1.0) | '
+            f'  Odom: mean={odom_mean:.2f} (ideal=3.0) | '
             f'exceed 95%: {odom_exceed:.1f}% | {odom_status}\n'
             f'  IMU:  mean={imu_mean:.2f} (ideal=2.0) | '
             f'exceed 95%: {imu_exceed:.1f}% | {imu_status}'

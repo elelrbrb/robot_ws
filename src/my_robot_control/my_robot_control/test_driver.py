@@ -15,7 +15,7 @@ class PathFollower(Node):
         # 파라미터 선언
         self.declare_parameter('wait_time', 3.0)
         self.declare_parameter('linear_tolerance', 0.1)
-        self.declare_parameter('angular_tolerance', 0.03)  # ✅ 더 정밀하게
+        self.declare_parameter('angular_tolerance', 0.03)  
         self.declare_parameter('linear_speed', 0.3)
         self.declare_parameter('angular_speed', 0.4)      
         self.declare_parameter('use_imu', True)
@@ -64,7 +64,7 @@ class PathFollower(Node):
         self.current_segment_index = 0
         self.state = 'IDLE'
         self.wait_start_time = None
-        self.segment_start_time = None  # ✅ 세그먼트 시작 시간
+        self.segment_start_time = None 
         
         # 오도메트리 데이터
         self.current_x = 0.0
@@ -89,6 +89,8 @@ class PathFollower(Node):
         self.get_logger().info(f"Angular Tolerance: {math.degrees(self.angular_tolerance):.2f}°")
         self.get_logger().info(f"Reposition Time: {self.reposition_time}s")
 
+
+
     def load_path(self, path_name):
         self.current_path_name = path_name
         self.segments = []
@@ -105,7 +107,6 @@ class PathFollower(Node):
                 self.segments.append(('ANGULAR', math.pi/2)) 
 
         elif path_name == 'figure8':
-            # ✅ 8 자: 왼쪽 원 → 재보정 → 오른쪽 원 (대칭 보장)
             self.segments.append(('CIRCLE_LEFT', 2*math.pi))
             self.segments.append(('REPOSITION', self.reposition_time))
             self.segments.append(('CIRCLE_RIGHT', 2*math.pi))
@@ -113,6 +114,8 @@ class PathFollower(Node):
             self.segments.append(('LINEAR', 2.0))
         
         self.get_logger().info(f"Loaded Path: {path_name} (Segments: {len(self.segments)})")
+
+
 
     def odom_callback(self, msg):
         self.current_x = msg.pose.pose.position.x
@@ -124,6 +127,8 @@ class PathFollower(Node):
         self.current_yaw = odom_yaw
         self.odom_received = True
 
+
+
     def imu_callback(self, msg):
         orientation = msg.orientation
         _, _, imu_yaw = euler_from_quaternion([
@@ -131,12 +136,16 @@ class PathFollower(Node):
         ])
         self.imu_yaw = imu_yaw
 
+
+
     def get_current_yaw(self):
         """IMU 또는 EKF 에서 yaw 획득"""
         if self.use_imu and self.imu_yaw is not None:
             return self.imu_yaw
         return self.current_yaw
-    
+
+
+
     def update_cumulative_yaw(self, current_yaw):
         """누적 각도 계산 (360 도 이상 추적용)"""
         if not hasattr(self, 'prev_yaw_initialized'):
@@ -150,6 +159,8 @@ class PathFollower(Node):
         self.cumulative_yaw += delta_yaw
         self.prev_yaw = current_yaw
 
+
+
     def timer_callback(self):
         if not self.odom_received:
             return
@@ -157,7 +168,6 @@ class PathFollower(Node):
         current_time = self.get_clock().now()
         current_yaw = self.get_current_yaw()
 
-        # 누적 각도 업데이트 (원 주행용)
         self.update_cumulative_yaw(current_yaw)
         
         if self.state == 'IDLE':
@@ -168,7 +178,7 @@ class PathFollower(Node):
             self.prev_yaw = current_yaw
             self.cumulative_yaw = 0.0
             self.setup_segment_target(current_yaw)
-            self.segment_start_time = current_time  # ✅ 초기화
+            self.segment_start_time = current_time  
             self.get_logger().info(f"=== Starting Path: {self.current_path_name} ===")
         
         elif self.state == 'DRIVING':
@@ -209,9 +219,9 @@ class PathFollower(Node):
         elif self.state == 'FINISHED':
             pass
 
+
+
     def handle_reposition(self, current_time, wait_duration):
-        """✅ 재보정 구간: 정지하여 EKF 보정 대기"""
-        # ✅ 중요: segment_start_time 이 None 이면 현재 시간으로 설정
         if self.segment_start_time is None:
             self.segment_start_time = current_time
         
@@ -219,15 +229,15 @@ class PathFollower(Node):
         
         if elapsed >= wait_duration:
             self.get_logger().info(f"✓ Reposition Complete ({wait_duration}s)")
-            # ✅ 중요: 현재 위치를 새로운 기준으로 설정 (대칭 보장)
             self.start_x = self.current_x
             self.start_y = self.current_y
             self.start_yaw = self.get_current_yaw()
             self.prev_yaw = self.start_yaw
             self.cumulative_yaw = 0.0
-            self.segment_start_time = None  # ✅ 리셋
+            self.segment_start_time = None  
             self.next_segment()
-        # 정지 상태 유지
+
+
 
     def setup_segment_target(self, current_yaw):
         if len(self.segments) == 0:
@@ -235,6 +245,8 @@ class PathFollower(Node):
         segment_type, target_value = self.segments[self.current_segment_index]
         if segment_type == 'ANGULAR':
             self.target_yaw = self.start_yaw + target_value
+
+
 
     def drive_linear(self, target_distance):
         dx = self.current_x - self.start_x
@@ -252,6 +264,8 @@ class PathFollower(Node):
             msg = Twist()
             msg.linear.x = speed
             self.cmd_pub.publish(msg)
+
+
 
     def drive_angular_precise(self, target_angle, current_yaw):
         """정밀 회전 제어 (P 제어 + 감속)"""
@@ -276,11 +290,12 @@ class PathFollower(Node):
             msg.angular.z = angular_velocity
             self.cmd_pub.publish(msg)
 
+
+
     def drive_circle(self, total_angle, direction, current_yaw):
         """원 주행 - 누적 각도 사용 (360 도 이상 추적)"""
         traveled_angle = abs(self.cumulative_yaw)
         
-        # 90 도 단위 로그
         if int(math.degrees(traveled_angle)) % 90 < 10:
             self.get_logger().info(f"🔄 Circle: {math.degrees(traveled_angle):.1f}° / {math.degrees(total_angle):.1f}°")
         
@@ -293,12 +308,16 @@ class PathFollower(Node):
             msg.angular.z = direction * self.angular_speed
             self.cmd_pub.publish(msg)
 
+
+
     def normalize_angle(self, angle):
         while angle > math.pi:
             angle -= 2 * math.pi
         while angle < -math.pi:
             angle += 2 * math.pi
         return angle
+
+
 
     def next_segment(self):
         self.stop_robot()
@@ -316,7 +335,6 @@ class PathFollower(Node):
             self.prev_yaw = current_yaw
             self.cumulative_yaw = 0.0
             
-            # ✅ REPOSITION 세그먼트면 시간 기록
             segment_type, _ = self.segments[self.current_segment_index]
             if segment_type == 'REPOSITION':
                 self.segment_start_time = self.get_clock().now()
@@ -325,11 +343,18 @@ class PathFollower(Node):
             self.setup_segment_target(current_yaw)
             self.get_logger().info(f"Segment {self.current_segment_index + 1}/{len(self.segments)} Started")
 
+
+
     def stop_robot(self):
         msg = Twist()
         msg.linear.x = 0.0
         msg.angular.z = 0.0
         self.cmd_pub.publish(msg)
+
+
+
+
+
 
 def main(args=None):
     rclpy.init(args=args)

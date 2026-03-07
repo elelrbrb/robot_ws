@@ -2,9 +2,8 @@
 # ════════════════════════════════════════════════════════════════
 # analyze_sensor_noise.py
 # Day 68 — 센서 노이즈 정량화 (R 결정!)
-#
-# 정적 테스트 데이터에서 각 센서의 노이즈 분산을 계산.
-# → 이 값이 R 행렬의 대각 원소!
+
+# 정적 테스트 데이터에서 각 센서의 노이즈 분산을 계산 → 이 값이 R 행렬의 대각 원소!
 # ════════════════════════════════════════════════════════════════
 
 import numpy as np
@@ -12,23 +11,11 @@ import math
 
 
 def analyze_odometry_noise(odom_data: dict) -> dict:
-    """
-    정적 오도메트리 데이터 분석.
-
-    odom_data: {
-        'x': [...], 'y': [...], 'theta': [...],
-        'vx': [...], 'omega_z': [...]
-    }
-
-    정지 중이므로:
-      x, y, theta의 변화 = 적분 노이즈!
-      vx, omega_z = 순간 노이즈!
-    """
     results = {}
 
     # 위치: 시간에 따른 드리프트 → 분산 계산은 "변화량"에 대해!
-    # 정지 중 x가 서서히 변하면 → 시스템적 오차 (바이어스!)
-    # 변동 (진동) → 노이즈!
+        # 정지 중 x가 서서히 변하면 → 시스템적 오차 (바이어스!)
+        # 변동 (진동) → 노이즈!
     x = np.array(odom_data['x'])
     y = np.array(odom_data['y'])
     theta = np.array(odom_data['theta'])
@@ -62,16 +49,8 @@ def analyze_odometry_noise(odom_data: dict) -> dict:
     return results
 
 
-def analyze_imu_noise(imu_data: dict) -> dict:
-    """
-    정적 IMU 데이터 분석.
 
-    imu_data: {
-        'yaw': [...],
-        'omega_z': [...],
-        'ax': [...], 'ay': [...], 'az': [...]
-    }
-    """
+def analyze_imu_noise(imu_data: dict) -> dict:
     results = {}
 
     yaw = np.array(imu_data['yaw'])
@@ -100,6 +79,7 @@ def analyze_imu_noise(imu_data: dict) -> dict:
     results['R_ax'] = results['sigma_ax'] ** 2
 
     return results
+
 
 
 def print_noise_report(odom_r, imu_r):
